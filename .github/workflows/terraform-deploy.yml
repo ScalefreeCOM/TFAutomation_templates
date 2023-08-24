@@ -2,9 +2,21 @@ name: 'Deploy'
 
 on:
   workflow_call:
+    inputs:
+      branch:
+        required: true
+        type: string
+      region:
+        type: string
+        default: "eu-west-3"
+    secrets:
+      access-key:
+        required: true
+      secret-access-key:
+        required: true
   push:
     branches:
-        - main
+        - ${{ inputs.branch }}
 
 permissions:
   contents: read
@@ -23,9 +35,9 @@ jobs:
     - name: Configure AWS Credentials Action For GitHub Actions
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: eu-west-3 #can be a secret aswell 
+        aws-access-key-id: ${{ secrets.access-key }}
+        aws-secret-access-key: ${{ secrets.secret-access-key }}
+        aws-region: ${{ input.region }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
@@ -61,9 +73,9 @@ jobs:
     - name: Configure AWS Credentials Action For GitHub Actions
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: eu-west-3 #can be a secret aswell 
+        aws-access-key-id:  ${{ secrets.access-key }}
+        aws-secret-access-key:  ${{ secrets.secret-access-key }}
+        aws-region:  ${{ input.region }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
