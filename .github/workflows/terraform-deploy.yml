@@ -34,7 +34,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.access-key }}
         aws-secret-access-key: ${{ secrets.secret-access-key }}
-        aws-region: ${{ input.region }}
+        aws-region: ${{ inputs.region }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
@@ -72,7 +72,7 @@ jobs:
       with:
         aws-access-key-id:  ${{ secrets.access-key }}
         aws-secret-access-key:  ${{ secrets.secret-access-key }}
-        aws-region:  ${{ input.region }}
+        aws-region:  ${{ inputs.region }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
