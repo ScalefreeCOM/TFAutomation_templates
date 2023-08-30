@@ -13,11 +13,6 @@ on:
       secret-access-key:
         required: true
         
-  pull_request:
-    types: [opened, synchronize]
-    branches:
-      - main
-
 jobs:
   build:
     runs-on: ubuntu-latest
