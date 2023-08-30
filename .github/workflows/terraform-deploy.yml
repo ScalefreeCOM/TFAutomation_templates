@@ -6,6 +6,11 @@ on:
       region:
         type: string
         default: "eu-west-3"
+    secrets:
+       AWS_ACCESS_KEY:
+         required: true
+       AWS_SECRET_ACCESS_KEY:
+         required: true
         
 jobs:
   build:
