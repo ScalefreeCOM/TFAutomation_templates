@@ -4,9 +4,6 @@ name: 'Build'
 on:
   workflow_call:
     inputs:
-      branch:
-        required: true
-        type: string
       region:
         type: string
         default: "eu-west-3"
@@ -19,11 +16,7 @@ on:
   pull_request:
     types: [opened, synchronize]
     branches:
-      - ${{ inputs.branch }}
-
-permissions:
-  contents: read
-
+      - main
 
 jobs:
   build:
