@@ -10,6 +10,9 @@ on:
       checkout_ref:
         type: string
         required: true
+      tf_version:
+        type: number
+        required: true
     secrets:
        AWS_ACCESS_KEY:
          required: true
@@ -36,7 +39,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.4
+          terraform_version: inputs.tf_version
     
       - name: Terraform fmt
         id: fmt
