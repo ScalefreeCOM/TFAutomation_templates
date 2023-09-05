@@ -11,7 +11,7 @@ on:
         type: string
         required: true
       tf_version:
-        type: number
+        type: string
         required: true
     secrets:
        AWS_ACCESS_KEY:
@@ -39,7 +39,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: inputs.tf_version
+          terraform_version: ${{ inputs.tf_version }}
     
       - name: Terraform fmt
         id: fmt
