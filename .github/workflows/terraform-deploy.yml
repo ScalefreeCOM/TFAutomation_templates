@@ -18,9 +18,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-
+    
     # Checkout the repo
     - uses: actions/checkout@v3
 
@@ -58,8 +57,26 @@ jobs:
     runs-on: ubuntu-latest
     environment: 'prod'
     needs: build
-      
+        
     steps:
+    - name: Generate token
+      id: generate_token
+      uses: tibdex/github-app-token@v1
+      with:
+        app_id: ${{ secrets.APPROVAL_APP_ID }}
+        private_key: ${{ secrets.APPROVAL_APP_PRIVATE_KEY }}
+        
+    - uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ steps.generate_token.outputs.token }}
+        approvers: it
+        minimum-approvals: 2
+        issue-title: "Deploying v1.3.5 to prod from staging"
+        issue-body: "Please approve or deny the deployment of version v1.3.5."
+        exclude-workflow-initiator-as-approver: false
+        additional-approved-words: 'GO'
+        additional-denied-words: 'STOP'
+      
     - uses: actions/checkout@v3
 
      # Configure AWS credentials
