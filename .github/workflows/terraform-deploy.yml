@@ -71,7 +71,7 @@ jobs:
         #secret: ${{ github.TOKEN  }}
         secret: ${{ steps.generate_token.outputs.token }}
         approvers: it
-        minimum-approvals: 1
+        minimum-approvals: 2
         issue-title: "Deploying v1.3.5 to prod from staging"
         issue-body: "Please approve or deny the deployment of version v1.3.5."
         exclude-workflow-initiator-as-approver: false
