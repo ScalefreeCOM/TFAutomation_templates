@@ -9,6 +9,18 @@ on:
       tf_version:
         type: string
         required: true
+      approvers: 
+        type: string
+        required: true
+      minimum-approvals: 
+        type: string
+        default: 2
+      issue-title: 
+        type: string
+        default: "Deploying v1.3.5 to prod from staging"
+      issue-body: 
+        type: string
+        default: "Please approve or deny the deployment. Required approvals: ${{ inputs.minimum_approvers }}"
     secrets:
        AWS_ACCESS_KEY:
          required: true
@@ -70,10 +82,10 @@ jobs:
       with:
         #secret: ${{ github.TOKEN  }}
         secret: ${{ steps.generate_token.outputs.token }}
-        approvers: it
-        minimum-approvals: 2
-        issue-title: "Deploying v1.3.5 to prod from staging"
-        issue-body: "Please approve or deny the deployment of version v1.3.5."
+        approvers: ${{ inputs.approvers }}
+        minimum-approvals: ${{ inputs.minimum-approvals }}
+        issue-title: ${{ inputs.issue-title }}
+        issue-body: ${{ inputs.issue-body }}
         exclude-workflow-initiator-as-approver: false
         additional-approved-words: 'GO'
         additional-denied-words: 'STOP'
