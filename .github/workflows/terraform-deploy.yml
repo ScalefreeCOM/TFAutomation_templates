@@ -3,6 +3,9 @@ name: 'Deploy'
 on:
   workflow_call:
     inputs:
+      runs-on: 
+        type: string
+        default: ubuntu-latest
       region:
         type: string
         default: "eu-west-3"
@@ -17,10 +20,10 @@ on:
         default: 2
       issue-title: 
         type: string
-        default: "Deploying v1.3.5 to prod from staging"
+        default: "Deploying"
       issue-body: 
         type: string
-        default: "Please approve or deny the deployment. Required approvals: ${{ inputs.minimum_approvers }}"
+        default: "Please approve or deny the deployment."
     secrets:
        AWS_ACCESS_KEY:
          required: true
@@ -29,7 +32,7 @@ on:
         
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs-on }}
     steps:
     
     # Checkout the repo
