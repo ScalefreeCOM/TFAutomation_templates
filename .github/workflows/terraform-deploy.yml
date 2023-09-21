@@ -69,8 +69,7 @@ jobs:
       run: terraform plan
         
   deploy:
-    runs-on: ubuntu-latest
-    environment: 'prod'
+    runs-on: ${{ inputs.runs-on }}
     needs: build
         
     steps:
