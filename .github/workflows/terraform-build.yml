@@ -4,12 +4,12 @@ name: 'Build'
 on:
   workflow_call:
     inputs:
+      runs-on:
+        type: string
+        default: ubuntu-latest
       region:
         type: string
         default: "eu-west-3"
-      checkout_ref:
-        type: string
-        required: true
       tf_version:
         type: string
         required: true
@@ -22,12 +22,12 @@ on:
         
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs-on }}
     steps:
       - name: Checkout pull request branch
         uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.checkout_ref }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Configure AWS Credentials Action For GitHub Actions
         uses: aws-actions/configure-aws-credentials@v1
