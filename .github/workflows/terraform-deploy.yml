@@ -81,7 +81,7 @@ jobs:
         private_key: ${{ secrets.APPROVAL_APP_PRIVATE_KEY }}
         
     - uses: trstringer/manual-approval@v1
-      timeout-minutes: 59
+      timeout-minutes: 58
       with:
         #secret: ${{ github.TOKEN  }}
         secret: ${{ steps.generate_token.outputs.token }}
