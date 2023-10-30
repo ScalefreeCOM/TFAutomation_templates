@@ -1,0 +1,50 @@
+name: 'Push'
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        type: string
+        default: ubuntu-latest
+      region:
+        type: string
+        default: "eu-west-1"
+      meltano_repo:
+        type: string
+        required: true
+      image_tag:
+        type: string
+        default: latest
+    secrets:
+       AWS_ACCESS_KEY:
+         required: true
+       AWS_SECRET_ACCESS_KEY:
+         required: true
+                
+jobs:
+  push:
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials Action For GitHub Actions
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.TFAUTOMATION_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.TFAUTOMATION_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ inputs.meltano_repo }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          docker build --no-cache -t $ECR_REPOSITORY .
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
