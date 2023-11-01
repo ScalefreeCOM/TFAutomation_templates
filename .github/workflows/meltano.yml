@@ -9,7 +9,7 @@ on:
       region:
         type: string
         default: "eu-west-1"
-      meltano_repo:
+      ecr_repo:
         type: string
         required: true
       image_tag:
@@ -42,7 +42,7 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ inputs.meltano_repo }}
+          ECR_REPOSITORY: ${{ inputs.ecr_repo }}
           IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
           docker build --no-cache -t $ECR_REPOSITORY .
