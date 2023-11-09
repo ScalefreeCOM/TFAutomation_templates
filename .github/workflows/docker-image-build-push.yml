@@ -25,7 +25,7 @@ jobs:
   push:
     runs-on: ${{ inputs.runs-on }}
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout branch
         uses: actions/checkout@v3
 
       - name: Configure AWS Credentials Action For GitHub Actions
