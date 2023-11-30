@@ -39,6 +39,8 @@ jobs:
 
 <details>
   <summary>terraform-build.yml</summary>
+
+  [Example](https://github.com/ScalefreeCOM/TFAutomation_templates/blob/main/examples/terraform-build.yml)
   
   | input name | default       | required | 
   |------------|---------------|----------|
@@ -56,6 +58,8 @@ jobs:
 
 <details>
   <summary>terraform-deploy.yml</summary>
+
+  [Example](https://github.com/ScalefreeCOM/TFAutomation_templates/blob/main/examples/terraform-deploy.yml)
 
   | input name | default       | required | 
   |------------|---------------|----------|
@@ -77,6 +81,8 @@ jobs:
 
 <details>
   <summary>docker-image-build-push.yml</summary>
+
+  [Example](https://github.com/ScalefreeCOM/TFAutomation_templates/blob/main/examples/build-push-image.yml)
 
   | input name | default       | required | 
   |------------|---------------|----------|
