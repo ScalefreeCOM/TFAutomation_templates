@@ -19,13 +19,17 @@ on:
       
 jobs:
   call-workflow:
-   uses: ScalefreeCOM/TFAutomation_templates/.github/workflows/terraform-build.yml@main
-   with:
-     region: eu-west-3
-     tf_version: "1.5.4"
-   secrets: inherit
-   permissions:
-     contents: read
+    strategy:
+      matrix:
+        target: [./, ./common, ./network]
+    uses: ScalefreeCOM/TFAutomation_templates/.github/workflows/terraform-build.yml@main
+    with:
+      region: eu-west-3
+      tf_version: "1.5.4"
+      working_directory: ${{ matrix.target }}
+    secrets: inherit
+    permissions:
+      contents: read
 
 ```
 
