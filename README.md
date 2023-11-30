@@ -2,7 +2,7 @@
 
 Find the detailed documentation for reusable workflows [here](https://wiki.scalefree.net/it/devops/reusable-workflows).
 
-## Usage
+### Usage
 
 Create a file in the path .github/workflows, example down below.
 
@@ -35,7 +35,7 @@ jobs:
 > **with**: inputs for reusable workflow
 
 
-## Inputs for different templates:
+### Inputs for different templates:
 
 <details>
   <summary>terraform-build.yml</summary>
