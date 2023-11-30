@@ -1,0 +1,17 @@
+name: 'Push images'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      
+jobs:
+  call-workflow:
+   uses: ScalefreeCOM/TFAutomation_templates/.github/workflows/docker-image-build-push.yml@main
+   with:
+     region: eu-west-1
+     ecr_repo: docker-onboarding
+   secrets: inherit
+   permissions:
+     contents: read
