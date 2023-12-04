@@ -38,6 +38,15 @@ jobs:
 > **uses**: path to reusable workflow </br>
 > **with**: inputs for reusable workflow
 
+If you have multiple directories use the matrix strategy:
+
+```yaml
+    strategy:
+      matrix:
+        target: [./, ./common, ./network]
+```
+
+replace your directories with those in the example.
 
 ### Inputs for different templates:
 
