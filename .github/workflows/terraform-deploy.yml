@@ -12,6 +12,9 @@ on:
       tf_version:
         type: string
         required: true
+      working_directory:
+        type: string
+        required: true
       approvers: 
         type: string
         required: true
@@ -33,6 +36,9 @@ on:
 jobs:
   build:
     runs-on: ${{ inputs.runs-on }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
     steps:
     
     # Checkout the repo
@@ -71,6 +77,9 @@ jobs:
   deploy:
     runs-on: ${{ inputs.runs-on }}
     needs: build
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
         
     steps:
     - name: Generate token
