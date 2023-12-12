@@ -1,0 +1,22 @@
+name: 'Build'
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - main
+      
+jobs:
+  call-workflow:
+    strategy:
+      matrix:
+        target: [./, ./common, ./network]
+    uses: ./.github/workflows/terraform-build.yml
+    with:
+      region: eu-west-3
+      tf_version: "1.5.4"
+      working_directory: ${{ matrix.target }}
+    secrets: inherit
+    permissions:
+      contents: read
