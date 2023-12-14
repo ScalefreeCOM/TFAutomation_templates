@@ -62,6 +62,7 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: terraform plan -out=tfplan -detailed-exitcode
+        
       - name: Set Exit Code
         id: set_exit_code
         run: |
@@ -75,13 +76,13 @@ jobs:
     steps:
     
     - name: No changes
-      if: ${{ env.TF_EXIT_CODE == "0" }}
+      if: ${{ env.TF_EXIT_CODE == 0 }}
       run: echo "There no are changes"
       
     - name: Error
-      if: ${{ env.TF_EXIT_CODE == "1" }}
+      if: ${{ env.TF_EXIT_CODE == 1 }}
       run: echo "There is an Error"
       
     - name: Changes
-      if: ${{ env.TF_EXIT_CODE == "2" }}
+      if: ${{ env.TF_EXIT_CODE == 2 }}
       run: echo "There are changes"
