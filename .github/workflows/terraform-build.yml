@@ -61,4 +61,27 @@ jobs:
     
       - name: Terraform Plan
         id: plan
-        run: terraform plan -detailed-exitcode ; echo $?
+        run: terraform plan -out=tfplan -detailed-exitcode
+      - name: Set Exit Code
+        id: set_exit_code
+        run: |
+          TF_EXIT_CODE=$(terraform show -json tfplan | jq -r .exit_code)
+          echo "TF_EXIT_CODE=$TF_EXIT_CODE" >> $GITHUB_ENV
+        
+  test:
+    runs-on: ${{ inputs.runs-on }}
+    needs: build
+    
+    steps:
+    
+    - name: No changes
+      if: ${{ env.TF_EXIT_CODE == "0" }}
+      run: echo "There no are changes"
+      
+    - name: Error
+      if: ${{ env.TF_EXIT_CODE == "1" }}
+      run: echo "There is an Error"
+      
+    - name: Changes
+      if: ${{ env.TF_EXIT_CODE == "2" }}
+      run: echo "There are changes"
