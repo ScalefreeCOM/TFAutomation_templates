@@ -65,9 +65,8 @@ jobs:
         
       - name: Set Exit Code
         id: set_exit_code
-        run: |
-          TF_EXIT_CODE=$(terraform show -json tfplan | jq -r .exit_code)
-          echo "TF_EXIT_CODE=$TF_EXIT_CODE" >> $GITHUB_ENV
+        run: TF_EXIT_CODE=$?
+  
         
   test:
     runs-on: ${{ inputs.runs-on }}
