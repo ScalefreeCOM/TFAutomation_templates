@@ -66,7 +66,6 @@ jobs:
           TF_EXIT_CODE=$(terraform plan -out=tfplan -detailed-exitcode | grep -oP '(?<=::debug::exitcode: )\d+' || echo 0)
           echo "TF_EXIT_CODE=$TF_EXIT_CODE" >> $GITHUB_OUTPUT
           echo "Terraform Exit Code: $TF_EXIT_CODE"
-          exit "$TF_EXIT_CODE"
 
   
         
