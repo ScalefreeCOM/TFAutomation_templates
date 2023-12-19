@@ -85,7 +85,6 @@ jobs:
     steps:
     - name: print
       run: |
-        echo "Zweite Option: ${{ TF_EXIT_CODE }}"
         echo "Dritte Option: ${{ env.TF_EXIT_CODE }}"
     
     - name: No changes
