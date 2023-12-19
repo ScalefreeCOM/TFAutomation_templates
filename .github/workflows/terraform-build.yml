@@ -62,10 +62,10 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
-          #TF_EXIT_CODE=$(terraform plan -out=tfplan -detailed-exitcode | grep -oP '(?<=::debug::exitcode: )\d+' || echo 0)
+          TF_EXIT_CODE=$(terraform plan -out=tfplan -detailed-exitcode | grep -oP '(?<=::debug::exitcode: )\d+' || echo 0)
           
-          TF_PLAN=$(terraform plan -out=tfplan -detailed-exitcode)
-          TF_EXIT_CODE=$?
+          TF_PLAN=$(terraform plan -out=tfplan)
+          
           
           echo "TF_EXIT_CODE=$TF_EXIT_CODE" >> $GITHUB_ENV
 
