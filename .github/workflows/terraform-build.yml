@@ -76,6 +76,12 @@ jobs:
     needs: build
     
     steps:
-    - name: print
-      run: |
-        echo ${{ needs.build.outputs.exitcode }}
+    - name: no changes
+      if: ${{ needs.build.outputs.exitcode }} == "0" 
+      run: echo "no changes"
+    - name: error
+      if: ${{ needs.build.outputs.exitcode }} == "1" 
+      run: echo "error"
+    - name: changes
+      if: ${{ needs.build.outputs.exitcode }} == "2" 
+      run: echo "changes"
