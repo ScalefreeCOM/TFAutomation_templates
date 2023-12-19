@@ -83,15 +83,19 @@ jobs:
     needs: build
     
     steps:
+    - name: print
+      run: |
+        echo "Zweite Option: TF_EXIT_CODE"
+        echo "Dritte Option: env.TF_EXIT_CODE"
     
     - name: No changes
-      if: ${{ $TF_EXIT_CODE == 0 }}
+      if: ${{ env.TF_EXIT_CODE == 0 }}
       run: echo "There no are changes"
       
     - name: Error
-      if: ${{ $TF_EXIT_CODE == 1 }}
+      if: ${{ env.TF_EXIT_CODE == 1 }}
       run: echo "There is an Error"
       
     - name: Changes
-      if: ${{ $TF_EXIT_CODE == 2 }}
+      if: ${{ env.TF_EXIT_CODE == 2 }}
       run: echo "There are changes"
