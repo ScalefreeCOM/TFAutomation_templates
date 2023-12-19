@@ -72,6 +72,7 @@ jobs:
   
         
   test:
+    if: ${{ needs.build.outputs.exitcode == 0 }} 
     runs-on: ${{ inputs.runs-on }}
     needs: build
     
