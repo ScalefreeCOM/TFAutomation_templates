@@ -68,7 +68,9 @@ jobs:
           
           
           echo "TF_EXIT_CODE=$TF_EXIT_CODE" >> $GITHUB_ENV
-
+          echo "Erste Option: $TF_EXIT_CODE"
+          echo "Zweite Option: TF_EXIT_CODE"
+          echo "Dritte Option: env.TF_EXIT_CODE"
           echo "$TF_PLAN"
         
       - name: Print exit Code
