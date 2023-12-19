@@ -77,4 +77,4 @@ jobs:
     steps:
     - name: print
       run: |
-        echo "${{ env.exitcode }}"
+        echo "${{ needs.build.outputs }}"
