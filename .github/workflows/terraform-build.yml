@@ -77,11 +77,11 @@ jobs:
     
     steps:
     - name: no changes
-      if: ${{ needs.build.outputs.exitcode }} == "0" 
+      if: ${{ needs.build.outputs.exitcode == "0" }} 
       run: echo "no changes"
     - name: error
-      if: ${{ needs.build.outputs.exitcode }} == "1" 
+      if: ${{ needs.build.outputs.exitcode == "1" }} 
       run: echo "error"
     - name: changes
-      if: ${{ needs.build.outputs.exitcode }} == "2" 
+      if: ${{ needs.build.outputs.exitcode == "2" }}
       run: echo "changes"
