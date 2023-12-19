@@ -77,17 +77,17 @@ jobs:
     steps:
     - name: print
       run: |
-        echo "${{ exitcode }}"
         echo "${{ env.exitcode }}"
+        echo "$exitcode"
     
     - name: No changes
-      if: ${{ exitcode == 0 }}
+      if: $exitcode == 0
       run: echo "There no are changes"
       
     - name: Error
-      if: ${{ exitcode == 1 }}
+      if: $exitcode == 1
       run: echo "There is an Error"
       
     - name: Changes
-      if: ${{ exitcode == 2 }}
+      if: $exitcode == 2
       run: echo "There are changes"
