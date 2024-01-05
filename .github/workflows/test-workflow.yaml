@@ -1,7 +1,10 @@
 name: Share data between jobs
 
 on:
-    workflow_dispatch:
+  workflow_dispatch:
+  push:
+    branches:
+        - test-runner
 
 jobs:
   job_1:
