@@ -102,7 +102,7 @@ replace your directories with those in the example.
   | runs-on    | ubuntu-latest | no       |  
   | region     | eu-west-1     | no       |  
   | ecr-repo   | -             | yes      |  
-  | image-tag  | latest        | no       |
+  | image_tag  | latest        | no       |
   
   | secrets | requires |
   |---------|----------|
