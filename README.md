@@ -58,7 +58,8 @@ replace your directories with those in the example.
   | input name | default       | required | 
   |------------|---------------|----------|
   | runs-on    | ubuntu-latest | no       |  
-  | region     | eu-west-1     | no       |  
+  | region     | eu-west-1     | no       | 
+  | cloud_provider     | aws     | specific for provider     | 
   | tf_version   | -             | yes      |  
   | working_directory  | -        | yes       |
 
@@ -77,7 +78,8 @@ replace your directories with those in the example.
   | input name | default       | required | 
   |------------|---------------|----------|
   | runs-on    | ubuntu-latest | no       |  
-  | region     | eu-west-1     | no       |  
+  | region     | eu-west-1     | no       |
+  | cloud_provider     | aws     | specific for provider     | 
   | tf_version   | -             | yes      |  
   | working_directory  | -        | yes       |
   | approvers     | -     | yes       | 
