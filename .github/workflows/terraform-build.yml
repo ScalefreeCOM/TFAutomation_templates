@@ -10,6 +10,9 @@ on:
       region:
         type: string
         default: "eu-west-3"
+      cloud_provider:
+        type: string
+        default: "aws"
       tf_version:
         type: string
         required: true
@@ -35,12 +38,23 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
+        
       - name: Configure AWS Credentials Action For GitHub Actions
+        if:  inputs.cloud_provider == 'aws'
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.TFAUTOMATION_AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.TFAUTOMATION_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.region }}
+
+        
+      - name: 'Az CLI login'
+        if: inputs.cloud_provider == 'azure'
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
+          tenant-id: ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}}
+          subscription-id: ${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
