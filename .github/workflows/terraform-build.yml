@@ -72,6 +72,10 @@ jobs:
         id: validate
         run: terraform validate
 
+        - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.49.1
+
       - name: Run Trivy vulnerability scanner
         run: trivy config ${{ matrix.target }}
     
