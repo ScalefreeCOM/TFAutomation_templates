@@ -71,6 +71,9 @@ jobs:
       - name: Terraform Validate
         id: validate
         run: terraform validate
+
+      - name: Run Trivy vulnerability scanner
+        run: trivy config ${{ matrix.target }}
     
       - name: Terraform Plan
         id: plan
