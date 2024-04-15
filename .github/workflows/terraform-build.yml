@@ -55,6 +55,14 @@ jobs:
           tenant-id: ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}}
           subscription-id: ${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}
 
+          
+      - name: 'Authenticate to Google Cloud'
+        if: inputs.cloud_provider == 'gcp'
+        uses: 'google-github-actions/auth@v0.4.0'
+        with:
+          workload_identity_provider: 'projects/472159367072/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-oidc'
+          service_account: 'github-actions@scalefree-edw-test.iam.gserviceaccount.com'
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
