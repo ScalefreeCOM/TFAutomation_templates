@@ -1,4 +1,4 @@
-name: 'Deploy'
+name: 'Terraform Deploy'
 
 on:
   workflow_call:
@@ -23,7 +23,7 @@ on:
         required: true
       minimum-approvals: 
         type: string
-        default: 2
+        default: "2"
       issue-title: 
         type: string
         default: "Deploying"
