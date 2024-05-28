@@ -62,6 +62,10 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ inputs.tf_version }}
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
     
       - name: Terraform destroy
         id: destroy
