@@ -12,6 +12,12 @@ on:
       cloud_provider:
         type: string
         default: "aws"
+      tfvars:
+        type: boolean
+        default: false
+      tfvars-var:
+        type: string
+        default: "none"
       tf_version:
         type: string
         required: true
@@ -154,6 +160,13 @@ jobs:
       with:
         workload_identity_provider: 'projects/472159367072/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-oidc'
         service_account: 'github-actions@scalefree-edw-test.iam.gserviceaccount.com'
+    
+    - name: Generate tfvars
+      if: ${{ inputs.tfvars && inputs.working_directory == './synapse' }}
+      run: |
+          cd ${{ inputs.working_directory }} && cat << EOF > terraform.tfvars
+          ${{ inputs.tfvars-var }}="${{ secrets.SYNAPSE_PASSWORD }}"
+          EOF
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
