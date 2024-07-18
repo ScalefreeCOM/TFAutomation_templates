@@ -47,7 +47,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     defaults:
       run:
-        working-directory: ${{ inputs.working_directory }}
+        working-directory: ./${{ inputs.working_directory }}
     outputs:
       exitcode: ${{ steps.plan.outputs.TF_EXIT_CODE }}
     steps:
@@ -110,7 +110,7 @@ jobs:
     needs: build
     defaults:
       run:
-        working-directory: ${{ inputs.working_directory }}
+        working-directory: ./${{ inputs.working_directory }}
         
     
     steps:  
@@ -162,9 +162,9 @@ jobs:
         service_account: 'github-actions@scalefree-edw-test.iam.gserviceaccount.com'
     
     - name: Generate tfvars
-      if: ${{ inputs.tfvars && inputs.working_directory == './synapse' }}
+      if: ${{ inputs.tfvars && inputs.working_directory == 'synapse' }}
       run: |
-          cd ${{ inputs.working_directory }} && cat << EOF > terraform.tfvars
+          cd $GITHUB_WORKSPACE/${{ inputs.working_directory }} && cat << EOF > terraform.tfvars
           ${{ inputs.tfvars-var }}="${{ secrets.SYNAPSE_PASSWORD }}"
           EOF
 
