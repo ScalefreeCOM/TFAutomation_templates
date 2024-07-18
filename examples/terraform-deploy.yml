@@ -10,7 +10,7 @@ jobs:
   call-workflow:
     strategy:
       matrix:
-        target: [./, ./common, ./network]
+        target: ["", common, network]
     uses: ScalefreeCOM/TFAutomation_templates/.github/workflows/terraform-deploy.yml@main
     with:
       tf_version: 1.5.4
