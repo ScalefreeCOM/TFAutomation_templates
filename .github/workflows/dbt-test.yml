@@ -7,7 +7,7 @@ on:
         description: 'If false, the environment will be running until destroyed manualy. On every other value they will be destroyed after testing.'
         default: 'true'
         type: string
-      db-name:
+      db_name:
         required: true
         default: ''
         type: string
