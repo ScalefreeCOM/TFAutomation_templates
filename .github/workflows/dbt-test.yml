@@ -1,0 +1,461 @@
+name: 'dbt tests'
+
+on:
+  workflow_call:
+    inputs:
+      auto-destroy:
+        description: 'If false, the environment will be running until destroyed manualy. On every other value they will be destroyed after testing.'
+        default: 'true'
+        type: string
+      db_name:
+        required: true
+        default: ''
+        type: string
+    secrets:
+      TFAUTOMATION_AWS_ACCESS_KEY:
+        required: true
+      TFAUTOMATION_AWS_SECRET_ACCESS_KEY:
+        required: true
+      TFAUTOMATION_AZURE_CLIENT_ID:
+        required: true
+      TFAUTOMATION_AZURE_TENANT_ID:
+        required: true
+      TFAUTOMATION_AZURE_SUBSCRIPTION_ID:
+        required: true
+      DV4DBT_SA_KEYS:
+        required: true
+      SYNAPSE_DB_PASSWORD:
+        required: true
+      POSTGRES_DB_PASSWORD:
+        required: true
+      REDSHIFT_DB_PASSWORD:
+        required: true
+      SNOWFLAKE_PASSWORD:
+        required: true
+
+jobs:
+  db-environments:
+    defaults:
+      run:
+        working-directory: ./db-environments/${{ inputs.db_name }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Configure AWS Credentials Action For GitHub Actions
+      uses: aws-actions/configure-aws-credentials@v1-node16
+      with:
+        aws-access-key-id:  ${{ secrets.TFAUTOMATION_AWS_ACCESS_KEY }}
+        aws-secret-access-key:  ${{ secrets.TFAUTOMATION_AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-1
+
+    - name: 'Az CLI login'
+      if: ${{ inputs.db_name == 'synapse' }}
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
+        tenant-id: ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}}
+        subscription-id: ${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}
+
+    - name: 'Authenticate to Google Cloud'
+      if: ${{ inputs.db_name == 'bigquery' }}
+      uses: 'google-github-actions/auth@v0.4.0'
+      with:
+        credentials_json: '${{ secrets.DV4DBT_SA_KEYS }}'
+
+    - name: Create terraform.tfvars for synapse
+      if: ${{ inputs.db_name == 'synapse' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/synapse/ && cat << EOF > terraform.tfvars
+          sql_administrator_login_password="${{ secrets.SYNAPSE_DB_PASSWORD }}"
+          EOF
+    - name: Create terraform.tfvars for postgres
+      if: ${{ inputs.db_name == 'postgres' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/postgres/ && cat << EOF > terraform.tfvars
+          rds_postgres_password="${{ secrets.POSTGRES_DB_PASSWORD }}"
+          EOF
+    - name: Create terraform.tfvars for redshift
+      if: ${{ inputs.db_name == 'redshift' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/redshift/ && cat << EOF > terraform.tfvars
+          redshift_password="${{ secrets.REDSHIFT_DB_PASSWORD }}"
+          EOF
+    - name: Create terraform.tfvars for snowflake
+      if: ${{ inputs.db_name == 'snowflake' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > terraform.tfvars
+          snowflakePassword="${{ secrets.SNOWFLAKE_PASSWORD }}"
+          EOF
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.8.0
+        terraform_wrapper: false
+    
+    - name: Terraform Init
+      run: terraform init -backend-config "key=datavault4dbtenvironments/${{ github.run_id }}/${{ inputs.db_name }}/terraform.state" -backend-config "bucket=scalefree-tf-backend" -backend-config "region=eu-west-1" -backend-config "dynamodb_table=scalefree-tf-lock-backend"
+        
+    - name: Terraform Apply
+      run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
+  generate-files:
+    needs: db-environments
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create dv4dbt-test-sa.json
+        run: |
+            cd $GITHUB_WORKSPACE/db-environments/generated_files/ && cat << EOF > dv4dbt-sa-keys.json
+            ${{ secrets.DV4DBT_SA_KEYS }}
+            EOF
+  
+      - name: Create profiles.yml
+        run: |
+            cd $GITHUB_WORKSPACE/db-environments/generated_files/ && cat << EOF > profiles.yml
+            snowflake:
+              target: user_pw
+              outputs:
+                user_pw:
+                  type: snowflake
+                  user: ${{ vars.SNOWFLAKE_USERNAME }}
+                  password: ${{ secrets.SNOWFLAKE_PASSWORD }}
+                  
+                  account: ${{ vars.SNOWFLAKE_ACCOUNT }}
+                  role: ${{ vars.SNOWFLAKE_ROLE }}
+                  database: ${{ vars.SNOWFLAKE_DB }}
+                  warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+                  schema: ${{ vars.SNOWFLAKE_SCHEMA }}${{ github.run_id }}
+                  threads: ${{ vars.SNOWFLAKE_THREADS }}
+            bigquery:      
+              target: keyfile
+              outputs:
+                keyfile:
+                  type: bigquery
+                  method: service-account
+                  project: ${{ vars.BIGQUERY_PROJECT }}
+                  dataset: ${{ vars.BIGQUERY_DATASET }}${{ github.run_id }}
+                  threads: ${{ vars.BIGQUERY_THREADS }}
+                  keyfile: /user/app/profiles/dv4dbt-sa-keys.json
+            redshift:
+              target: user_pw
+              outputs:
+                user_pw:
+                  type: redshift
+                  host: ${{ vars.REDSHIFT_DB_HOST_START }}${{ github.run_id }}${{ vars.REDSHIFT_DB_HOST_END }}
+                  user: ${{ vars.REDSHIFT_DB_USERNAME }}
+                  password: ${{ secrets.REDSHIFT_DB_PASSWORD }}
+                  dbname: ${{ vars.REDSHIFT_DB }}${{ github.run_id }}
+                  schema: ${{ vars.REDSHIFT_DB_SCHEMA }}${{ github.run_id }}
+                  port: ${{ vars.REDSHIFT_PORT }}
+                  threads: ${{ vars.REDSHIFT_THREADS }}
+            postgres:
+              target: user_pw
+              outputs:
+                user_pw:
+                  type: postgres
+                  host: ${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}}
+                  user: ${{ vars.POSTGRES_DB_USERNAME }}
+                  password: '${{ secrets.POSTGRES_DB_PASSWORD }}'
+                  port: ${{ vars.POSTGRES_PORT }}
+                  dbname: ${{ vars.POSTGRES_DB }}${{ github.run_id }}
+                  schema: ${{ vars.POSTGRES_DB_SCHEMA }}
+                  threads: ${{ vars.POSTGRES_DB_THREADS }}
+            synapse:
+              target: user_pw
+              outputs:
+                user_pw:
+                  type: synapse
+                  driver: ${{ vars.SYNAPSE_DRIVER }}
+                  server: ${{ vars.SYNAPSE_SQL_ENDPOINT }}
+                  port: ${{ vars.SYNAPSE_PORT }}
+                  database: ${{ vars.SYNAPSE_DB }}${{ github.run_id }}
+                  schema: ${{ vars.SYNAPSE_DB_SCHEMA }}
+                  authentication: ServicePrincipal
+                  tenant_id: ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}}
+                  client_id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
+                  client_secret: ${{ secrets.AZURE_CLIENT_SECRET}}
+                  threads: ${{ vars.SYNAPSE_THREADS }}
+            exasol:
+              target: user_pw
+              outputs:
+                user_pw:
+                  type: exasol
+                  threads: ${{ vars.EXASOL_THREADS }}
+                  dsn: ${{ vars.EXASOL_DB_HOST }}
+                  user: ${{ vars.EXASOL_DB_USERNAME }}
+                  password: ${{ secrets.EXASOL_DB_PASSWORD }}
+                  dbname: ${{ vars.EXASOL_DB }}
+                  schema: ${{ vars.EXASOL_DB_SCHEMA }}    
+            EOF
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with: 
+          name: my-files
+          path: |
+            db-environments/generated_files/dv4dbt-sa-keys.json
+            db-environments/generated_files/profiles.yml
+      
+  print-run_id:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print run_id
+        run: echo "run_id  ${{ github.run_id }}"
+  
+  dbt-tests:
+    needs: generate-files
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Download Artifacts
+      uses: actions/download-artifact@v3
+      with: 
+        name: my-files
+        path: db-environments/generated_files
+
+    - name: Build ${{ inputs.db_name }} image
+      run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=tkiehn-dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+
+    - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 DBT_GLOBALS_VERSION=1
+      if: always()
+      run: docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=1 -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f
+    # - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 DBT_GLOBALS_VERSION=1
+    #   run: docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+
+    # - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 DBT_GLOBALS_VERSION=2
+    #   if: always()
+    #   run: docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=2 -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f
+    # - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 DBT_GLOBALS_VERSION=2
+    #   run: docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=2 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  
+  dbt-macro-tests:
+      needs: generate-files
+      runs-on: ubuntu-latest
+      if: always()
+          
+      steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with: 
+          name: my-files
+          path: db-environments/generated_files
+
+      - name: Build ${{ inputs.db_name }} image
+        run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=tkiehn-dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+
+      - name: Run run-operation is_list --args '{obj}' in ${{ inputs.db_name }} container
+        if: always()
+        run: docker run --name dv4dbt-macro-test-01-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_list --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation is_nothing --args '{obj}' in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-02-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_nothing --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation is_something --args '{obj}' in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-03-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_something --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation is_expression --args '{obj}' in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-04-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_expression --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation is_attribute --args '{obj}' in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-05-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_attribute --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation prepend_generated_by in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-06-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation prepend_generated_by -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation replace_standard --args '{input_variable, global_variable, default_value}' in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-07-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation replace_standard --args '{input_variable, global_variable, default_value}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation process_columns_to_select in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-08-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation process_columns_to_select -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation extract_column_names in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-09-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation extract_column_names -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation extract_input_columns in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-10-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation extract_input_columns -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation print_list --args '{list_to_print: abc}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-11-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation print_list --args '{list_to_print: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation alias_all --args '{columns: col}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-12-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation alias_all --args '{columns: col}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation alias --args '{alias_config: abc}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-13-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation alias --args '{alias_config: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation as_constant --args '{column_str: abc}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-14-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation as_constant --args '{column_str: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation check_required_parameters in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-15-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation check_required_parameters -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation concat_ws --args '{string_list: abc}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-16-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation concat_ws --args '{string_list: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation escape_column_names in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-17-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation escape_column_names -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation expand_column_list --args '{columns: [abc]}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-18-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation expand_column_list --args '{columns: [abc]}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation multikey in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-19-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation multikey -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation hash_columns in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-20-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash_columns -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation beginning_of_all_times in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-21-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation beginning_of_all_times -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation current_timestamp in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-22-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation current_timestamp -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation current_timestamp_in_utc in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-23-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation current_timestamp_in_utc -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation type_timestamp in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-24-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation type_timestamp -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation end_of_all_times in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-25-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation end_of_all_times -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation generate_schema_name in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-26-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation generate_schema_name -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation get_query_results_as_dict --args '{query: select 1}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-27-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_query_results_as_dict --args '{query: select 1}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation get_standard_string --args '{string_list: abc}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-28-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_standard_string --args '{string_list: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation ghost_record_per_datatype --args '{column_name: col, datatype: string, ghost_record_type: unknown}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-29-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation ghost_record_per_datatype --args '{column_name: col, datatype: string, ghost_record_type: unknown}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation hash_default_values in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-30-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash_default_values -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation hash_method in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-31-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash_method -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation attribute_standardise in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-32-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation attribute_standardise -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation hash --args '{columns: abc, alias: def}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-33-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash --args '{columns: abc, alias: def}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation limit_rows in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-34-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation limit_rows -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation max_datetime in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-35-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation max_datetime -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation parse_iso8601_date in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-36-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation parse_iso8601_date -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation parse_iso8601 in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-37-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation parse_iso8601 -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation prefix --args '{columns: abc, prefix_str: def}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-38-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation prefix --args '{columns: abc, prefix_str: def}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: "Run run-operation source_model_processing --args '{source_models: abc}' in ${{ inputs.db_name }} container"
+      #   if: always()
+      #   run: |
+      #     docker run --name dv4dbt-macro-test-39-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation source_model_processing --args '{source_models: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation string_to_timestamp in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-40-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation string_to_timestamp -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      # - name: Run run-operation timestamp_format in ${{ inputs.db_name }} container
+      #   if: always()
+      #   run: docker run --name dv4dbt-macro-test-41-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation timestamp_format -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  trigger-destroy-environments:
+    # needs: dbt-tests
+    # uses: ./.github/workflows/destroy-dbt-environments.yml
+    # with: 
+    #   run_id: ${{ github.run_id }}
+    # #should be triggered on failure or success of dbt-tests.
+    if: ${{ always() && inputs.auto-destroy != 'false' }} 
+    needs: dbt-tests
+
+    defaults:
+      run:
+        working-directory: ./db-environments/${{ inputs.db_name }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Configure AWS Credentials Action For GitHub Actions
+      uses: aws-actions/configure-aws-credentials@v1-node16
+      with:
+        aws-access-key-id:  ${{ secrets.TFAUTOMATION_AWS_ACCESS_KEY }}
+        aws-secret-access-key:  ${{ secrets.TFAUTOMATION_AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-1
+
+    - name: 'Az CLI login'
+      if: ${{ inputs.db_name == 'synapse' }}
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
+        tenant-id: ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}}
+        subscription-id: ${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}
+
+    - name: 'Authenticate to Google Cloud'
+      if: ${{ inputs.db_name == 'bigquery' }}
+      uses: 'google-github-actions/auth@v0.4.0'
+      with:
+        credentials_json: '${{ secrets.DV4DBT_SA_KEYS }}'
+
+    - name: Create terraform.tfvars for synapse
+      if: ${{ inputs.db_name == 'synapse' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/synapse/ && cat << EOF > terraform.tfvars
+          sql_administrator_login_password="${{ secrets.SYNAPSE_DB_PASSWORD }}"
+          EOF
+
+    - name: Create terraform.tfvars for redshift
+      if: ${{ inputs.db_name == 'redshift' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/redshift/ && cat << EOF > terraform.tfvars
+          redshift_password="${{ secrets.REDSHIFT_DB_PASSWORD }}"
+          EOF
+    - name: Create terraform.tfvars for snowflake
+      if: ${{ inputs.db_name == 'snowflake' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > terraform.tfvars
+          snowflakePassword="${{ secrets.SNOWFLAKE_PASSWORD }}"
+          EOF
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.8.0
+    
+    - name: Terraform Init
+      run: terraform init -backend-config "key=datavault4dbtenvironments/${{ github.run_id }}/${{ inputs.db_name }}/terraform.state" -backend-config "bucket=scalefree-tf-backend" -backend-config "region=eu-west-1" -backend-config "dynamodb_table=scalefree-tf-lock-backend"
+        
+    - name: Terraform Destroy
+      run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
