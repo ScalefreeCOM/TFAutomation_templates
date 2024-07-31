@@ -243,7 +243,7 @@ jobs:
     - name: install python packages
       run: |
         python -m pip install --upgrade pip
-        pip install -r $GITHUB_WORKSPACE/db-environments/techtest/requriements.txt
+        pip install -r $GITHUB_WORKSPACE/db-environments/techtest/requirements.txt
 
     - name: Download Artifacts
       uses: actions/download-artifact@v3
