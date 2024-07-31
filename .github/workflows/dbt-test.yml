@@ -261,8 +261,7 @@ jobs:
     - name: Compare
       if: ${{ inputs.db_name == 'bigquery' }}
       run: |
-        cd $GITHUB_WORKSPACE/db-environments/techtest
-        python testBigQuery.py -i '$GITHUB_WORKSPACE/seeds' -s './schema' -p ${{ vars.BIGQUERY_PROJECT }} -d ${{ vars.BIGQUERY_DATASET }}${{ github.run_id }} -k $GITHUB_WORKSPACE/db-environments/generated_files/dv4dbt-sa-keys.json
+        python $GITHUB_WORKSPACE/db-environments/techtest testBigQuery.py -i '$GITHUB_WORKSPAC/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -p ${{ vars.BIGQUERY_PROJECT }} -d ${{ vars.BIGQUERY_DATASET }}${{ github.run_id }} -k $GITHUB_WORKSPACE/db-environments/generated_files/dv4dbt-sa-keys.json
     
       # - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 DBT_GLOBALS_VERSION=1
     #   if: success() || failure()
