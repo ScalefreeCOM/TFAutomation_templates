@@ -32,6 +32,8 @@ on:
         required: true
       SNOWFLAKE_PASSWORD:
         required: true
+      EXASOL_DB_PASSWORD:
+        required: true
 
 jobs:
   db-environments:
@@ -39,6 +41,8 @@ jobs:
       run:
         working-directory: ./db-environments/${{ inputs.db_name }}
     runs-on: ubuntu-latest
+    outputs:
+      public_ip: ${{ steps.tf_output.outputs.public_ip }}
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -100,6 +104,23 @@ jobs:
         
     - name: Terraform Apply
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
+
+    - name: Terraform Output
+      if: ${{ inputs.db_name == 'exasol' }}
+      id: tf_output
+      run: |
+        echo "public_ip=$(terraform output -json | jq -r .publicIP.value)" >> $GITHUB_OUTPUT
+        sleep 30
+
+    - name: Setup environment and start Server
+      if: ${{ inputs.db_name == 'exasol' }}
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+          host: ${{ steps.tf_output.outputs.PUBLIC_IP }}
+          username: ${{ secrets.SSH_USER_EXASOL }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_EXASOL }}
+          script: |
+              docker run --name dv4dbt-exasol --network host --detach --privileged --stop-timeout 120  exasol/docker-db:8.27.0
   generate-files:
     needs: db-environments
     runs-on: ubuntu-latest
@@ -186,7 +207,7 @@ jobs:
                 user_pw:
                   type: exasol
                   threads: ${{ vars.EXASOL_THREADS }}
-                  dsn: ${{ vars.EXASOL_DB_HOST }}
+                  dsn: ${{ needs.db-environments.outputs.public_ip}}:${{ vars.EXASOL_PORT }}
                   user: ${{ vars.EXASOL_DB_USERNAME }}
                   password: ${{ secrets.EXASOL_DB_PASSWORD }}
                   dbname: ${{ vars.EXASOL_DB }}
