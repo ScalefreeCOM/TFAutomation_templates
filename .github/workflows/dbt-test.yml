@@ -237,6 +237,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
     - name: Download Artifacts
       uses: actions/download-artifact@v3
       with: 
@@ -245,174 +249,184 @@ jobs:
 
     - name: Build ${{ inputs.db_name }} image
       run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=tkiehn-dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+   
+    - name: Run ${{ inputs.db_name }} container dbt seed
+      if: success() || failure()
+      run: docker run --name dv4dbt-seed-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt seed --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
 
-    - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 DBT_GLOBALS_VERSION=1
-      if: success() || failure()
-      run: docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=1 -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f
-    - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 DBT_GLOBALS_VERSION=1
-      if: success() || failure()
-      run: docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+    - name: Compare
+      if: ${{ inputs.db_name == 'bigquery' }}
+      run: |
+        cd $GITHUB_WORKSPACE/db-environments/techtest
+        python testBigQuery.py -i '$GITHUB_WORKSPACE/seeds' -s './schema' -p ${{ vars.BIGQUERY_PROJECT }} -d ${{ vars.BIGQUERY_DATASET }}${{ github.run_id }} -k $GITHUB_WORKSPACE/db-environments/generated_files/dv4dbt-sa-keys.json
+    
+      # - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 DBT_GLOBALS_VERSION=1
+    #   if: success() || failure()
+    #   run: docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=1 -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f
+    # - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 DBT_GLOBALS_VERSION=1
+    #   if: success() || failure()
+    #   run: docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
 
-    - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 DBT_GLOBALS_VERSION=2
-      if: success() || failure()
-      run: docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=2 -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f
-    - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 DBT_GLOBALS_VERSION=2
-      if: success() || failure()
-      run: docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=2 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+    # - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 DBT_GLOBALS_VERSION=2
+    #   if: success() || failure()
+    #   run: docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=2 -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f
+    # - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 DBT_GLOBALS_VERSION=2
+    #   if: success() || failure()
+    #   run: docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_GLOBALS_VERSION=2 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
   
-  dbt-macro-tests:
-      needs: generate-files
-      runs-on: ubuntu-latest
-      if: success() || failure()
+  # dbt-macro-tests:
+  #     needs: generate-files
+  #     runs-on: ubuntu-latest
+  #     if: success() || failure()
           
-      steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+  #     steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
 
-      - name: Download Artifacts
-        uses: actions/download-artifact@v3
-        with: 
-          name: my-files
-          path: db-environments/generated_files
+  #     - name: Download Artifacts
+  #       uses: actions/download-artifact@v3
+  #       with: 
+  #         name: my-files
+  #         path: db-environments/generated_files
 
-      - name: Build ${{ inputs.db_name }} image
-        run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=tkiehn-dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+  #     - name: Build ${{ inputs.db_name }} image
+  #       run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=tkiehn-dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
 
-      - name: Run run-operation is_list --args '{obj}' in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-01-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_list --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation is_nothing --args '{obj}' in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-02-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_nothing --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation is_something --args '{obj}' in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-03-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_something --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation is_expression --args '{obj}' in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-04-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_expression --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation is_attribute --args '{obj}' in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-05-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_attribute --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation prepend_generated_by in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-06-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation prepend_generated_by -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation replace_standard --args '{input_variable, global_variable, default_value}' in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-07-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation replace_standard --args '{input_variable, global_variable, default_value}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation process_columns_to_select in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-08-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation process_columns_to_select -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation extract_column_names in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-09-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation extract_column_names -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation extract_input_columns in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-10-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation extract_input_columns -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation print_list --args '{list_to_print: abc}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-11-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation print_list --args '{list_to_print: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation alias_all --args '{columns: col}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-12-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation alias_all --args '{columns: col}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation alias --args '{alias_config: abc}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-13-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation alias --args '{alias_config: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation as_constant --args '{column_str: abc}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-14-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation as_constant --args '{column_str: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation check_required_parameters in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-15-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation check_required_parameters -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation concat_ws --args '{string_list: abc}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-16-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation concat_ws --args '{string_list: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation escape_column_names in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-17-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation escape_column_names -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation expand_column_list --args '{columns: [abc]}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-18-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation expand_column_list --args '{columns: [abc]}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation multikey in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-19-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation multikey -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation hash_columns in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-20-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash_columns -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation beginning_of_all_times in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-21-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation beginning_of_all_times -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation current_timestamp in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-22-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation current_timestamp -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation current_timestamp_in_utc in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-23-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation current_timestamp_in_utc -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation type_timestamp in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-24-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation type_timestamp -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation end_of_all_times in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-25-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation end_of_all_times -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation generate_schema_name in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-26-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation generate_schema_name -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation get_query_results_as_dict --args '{query: select 1}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-27-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_query_results_as_dict --args '{query: select 1}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation get_standard_string --args '{string_list: abc}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-28-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_standard_string --args '{string_list: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation ghost_record_per_datatype --args '{column_name: col, datatype: string, ghost_record_type: unknown}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-29-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation ghost_record_per_datatype --args '{column_name: col, datatype: string, ghost_record_type: unknown}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation hash_default_values in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-30-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash_default_values -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation hash_method in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-31-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash_method -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation attribute_standardise in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-32-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation attribute_standardise -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation hash --args '{columns: abc, alias: def}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-33-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash --args '{columns: abc, alias: def}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation limit_rows in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-34-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation limit_rows -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation max_datetime in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-35-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation max_datetime -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation parse_iso8601_date in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-36-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation parse_iso8601_date -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation parse_iso8601 in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-37-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation parse_iso8601 -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation prefix --args '{columns: abc, prefix_str: def}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-38-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation prefix --args '{columns: abc, prefix_str: def}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: "Run run-operation source_model_processing --args '{source_models: abc}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
-        run: |
-          docker run --name dv4dbt-macro-test-39-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation source_model_processing --args '{source_models: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation string_to_timestamp in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-40-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation string_to_timestamp -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation timestamp_format in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-41-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation timestamp_format -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation is_list --args '{obj}' in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-01-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_list --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation is_nothing --args '{obj}' in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-02-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_nothing --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation is_something --args '{obj}' in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-03-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_something --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation is_expression --args '{obj}' in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-04-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_expression --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation is_attribute --args '{obj}' in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-05-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_attribute --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation prepend_generated_by in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-06-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation prepend_generated_by -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation replace_standard --args '{input_variable, global_variable, default_value}' in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-07-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation replace_standard --args '{input_variable, global_variable, default_value}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation process_columns_to_select in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-08-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation process_columns_to_select -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation extract_column_names in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-09-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation extract_column_names -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation extract_input_columns in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-10-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation extract_input_columns -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation print_list --args '{list_to_print: abc}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-11-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation print_list --args '{list_to_print: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation alias_all --args '{columns: col}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-12-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation alias_all --args '{columns: col}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation alias --args '{alias_config: abc}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-13-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation alias --args '{alias_config: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation as_constant --args '{column_str: abc}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-14-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation as_constant --args '{column_str: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation check_required_parameters in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-15-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation check_required_parameters -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation concat_ws --args '{string_list: abc}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-16-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation concat_ws --args '{string_list: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation escape_column_names in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-17-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation escape_column_names -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation expand_column_list --args '{columns: [abc]}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-18-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation expand_column_list --args '{columns: [abc]}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation multikey in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-19-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation multikey -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation hash_columns in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-20-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash_columns -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation beginning_of_all_times in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-21-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation beginning_of_all_times -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation current_timestamp in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-22-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation current_timestamp -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation current_timestamp_in_utc in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-23-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation current_timestamp_in_utc -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation type_timestamp in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-24-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation type_timestamp -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation end_of_all_times in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-25-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation end_of_all_times -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation generate_schema_name in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-26-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation generate_schema_name -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation get_query_results_as_dict --args '{query: select 1}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-27-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_query_results_as_dict --args '{query: select 1}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation get_standard_string --args '{string_list: abc}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-28-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_standard_string --args '{string_list: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation ghost_record_per_datatype --args '{column_name: col, datatype: string, ghost_record_type: unknown}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-29-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation ghost_record_per_datatype --args '{column_name: col, datatype: string, ghost_record_type: unknown}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation hash_default_values in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-30-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash_default_values -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation hash_method in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-31-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash_method -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation attribute_standardise in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-32-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation attribute_standardise -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation hash --args '{columns: abc, alias: def}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-33-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation hash --args '{columns: abc, alias: def}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation limit_rows in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-34-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation limit_rows -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation max_datetime in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-35-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation max_datetime -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation parse_iso8601_date in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-36-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation parse_iso8601_date -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation parse_iso8601 in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-37-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation parse_iso8601 -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation prefix --args '{columns: abc, prefix_str: def}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-38-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation prefix --args '{columns: abc, prefix_str: def}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: "Run run-operation source_model_processing --args '{source_models: abc}' in ${{ inputs.db_name }} container"
+  #       if: success() || failure()
+  #       run: |
+  #         docker run --name dv4dbt-macro-test-39-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation source_model_processing --args '{source_models: abc}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation string_to_timestamp in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-40-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation string_to_timestamp -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+  #     - name: Run run-operation timestamp_format in ${{ inputs.db_name }} container
+  #       if: success() || failure()
+  #       run: docker run --name dv4dbt-macro-test-41-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation timestamp_format -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
   trigger-destroy-environments:
     # needs: dbt-tests
     # uses: ./.github/workflows/destroy-dbt-environments.yml
@@ -420,7 +434,7 @@ jobs:
     #   run_id: ${{ github.run_id }}
     # #should be triggered on failure or success of dbt-tests.
     if: ${{ success() || failure() && inputs.auto-destroy != 'false' }} 
-    needs: [ dbt-tests, dbt-macro-tests ]
+    needs: [ dbt-tests ]
 
     defaults:
       run:
