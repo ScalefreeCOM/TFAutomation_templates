@@ -211,7 +211,8 @@ jobs:
                   user: ${{ vars.EXASOL_DB_USERNAME }}
                   password: ${{ secrets.EXASOL_DB_PASSWORD }}
                   dbname: ${{ vars.EXASOL_DB }}
-                  schema: ${{ vars.EXASOL_DB_SCHEMA }}    
+                  schema: ${{ vars.EXASOL_DB_SCHEMA }}
+                  query_timeout: 60
             EOF
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
