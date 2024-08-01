@@ -212,7 +212,7 @@ jobs:
                   password: ${{ secrets.EXASOL_DB_PASSWORD }}
                   dbname: ${{ vars.EXASOL_DB }}
                   schema: ${{ vars.EXASOL_DB_SCHEMA }}
-                  query_timeout: 60
+                  query_timeout: 120
             EOF
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
