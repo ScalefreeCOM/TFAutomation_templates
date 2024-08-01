@@ -244,7 +244,7 @@ jobs:
         path: db-environments/generated_files
 
     - name: Build ${{ inputs.db_name }} image
-      run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=tkiehn-dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+      run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
 
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 DBT_GLOBALS_VERSION=1
       if: success() || failure()
@@ -276,7 +276,7 @@ jobs:
           path: db-environments/generated_files
 
       - name: Build ${{ inputs.db_name }} image
-        run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=tkiehn-dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+        run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
 
       - name: Run run-operation is_list --args '{obj}' in ${{ inputs.db_name }} container
         if: success() || failure()
