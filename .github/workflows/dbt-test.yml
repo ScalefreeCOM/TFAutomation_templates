@@ -106,6 +106,7 @@ jobs:
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
 
     - name: Send message to FIFO SQS
+      if: ${{ !inputs.auto-destroy }}
       run: |
         aws sqs send-message --queue-url ${{ secrets.FIFO_SQS_QUEUE_URL }} --message-body "${{ github.run_id }}/${{ inputs.db_name }}" --message-group-id ${{ inputs.db_name }} --message-deduplication-id ${{ inputs.db_name }}
 
