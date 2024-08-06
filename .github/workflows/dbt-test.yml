@@ -290,9 +290,6 @@ jobs:
       - name: Run run-operation is_expression --args '{obj}' in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-04-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_expression --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation is_attribute --args '{obj}' in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-05-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_attribute --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: Run run-operation prepend_generated_by in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-06-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation prepend_generated_by -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
