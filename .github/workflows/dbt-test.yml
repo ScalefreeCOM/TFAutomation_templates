@@ -248,17 +248,21 @@ jobs:
 
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to True
       if: success() || failure()
-      run: docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
+      run: |
+        docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to True
       if: success() || failure()
-      run: docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
+      run: |
+        docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
 
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to False
       if: success() || failure()
-      run: docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+      run: |
+        docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to False
       if: success() || failure()
-      run: docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+      run: |
+        docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
   
   dbt-macro-tests:
       needs: generate-files
