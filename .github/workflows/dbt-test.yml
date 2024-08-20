@@ -11,6 +11,16 @@ on:
         required: true
         default: ''
         type: string
+      dv4dbt-revision:
+        required: true
+        type: string
+      remote-triggered:
+        type: boolean
+        default: false
+      pr_id:
+        type: string
+        default: ''
+
     secrets:
       TFAUTOMATION_AWS_ACCESS_KEY:
         required: true
@@ -212,7 +222,9 @@ jobs:
                   password: ${{ secrets.EXASOL_DB_PASSWORD }}
                   dbname: ${{ vars.EXASOL_DB }}
                   schema: ${{ vars.EXASOL_DB_SCHEMA }}
-                  query_timeout: 120
+                  query_timeout: 60
+                  connection_timeout: 60
+                  socket_timeout: 60
             EOF
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
@@ -243,9 +255,13 @@ jobs:
         name: my-files
         path: db-environments/generated_files
 
-    - name: Build ${{ inputs.db_name }} image
-      run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+    - name: Wait 60s
+      if: ${{ inputs.db_name == 'exasol' }}
+      run: sleep 60
 
+    - name: Build ${{ inputs.db_name }} image
+      run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+    
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to True
       if: success() || failure()
       run: |
@@ -279,9 +295,13 @@ jobs:
           name: my-files
           path: db-environments/generated_files
 
-      - name: Build ${{ inputs.db_name }} image
-        run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=dev --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+      - name: Wait 60s
+        if: ${{ inputs.db_name == 'exasol' }}
+        run: sleep 60
 
+      - name: Build ${{ inputs.db_name }} image
+        run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+      
       - name: Run run-operation is_list --args '{obj}' in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-01-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation is_list --args '{obj}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
@@ -415,11 +435,6 @@ jobs:
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-41-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation timestamp_format -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
   trigger-destroy-environments:
-    # needs: dbt-tests
-    # uses: ./.github/workflows/destroy-dbt-environments.yml
-    # with: 
-    #   run_id: ${{ github.run_id }}
-    # #should be triggered on failure or success of dbt-tests.
     if: ${{ always() && inputs.auto-destroy != 'false' }} 
     needs: [ dbt-tests, dbt-macro-tests ]
 
@@ -484,3 +499,40 @@ jobs:
         
     - name: Terraform Destroy
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
+
+  push-command-delete-branch:
+    if: ${{ inputs.remote-triggered == 'true' }} 
+    needs: [ dbt-tests, dbt-macro-tests ]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Generate token
+      id: generate_token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ secrets.WORKFLOW_APP_ID }}  
+        private-key: ${{ secrets.WORKFLOW_APP_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+        repositories: "datavault4dbt"
+
+    - name: Write pr command
+      env:
+        GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+      run: |
+        COMMENT_BODY="RESULTS for ${{ inputs.db_name }}:\n dbt-tests: ${{ needs.dbt-tests.result }}\n dbt-macro-tests: ${{ needs.dbt-macro-tests.result }}"
+        curl -X POST \
+          -H "Authorization: token $GH_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/ScalefreeCOM/datavault4dbt/issues/${{ inputs.pr_id }}/comments \
+          -d "{\"body\": \"$COMMENT_BODY\"}"
+
+    - name: Delete pr-branch in datavault4dbt repo
+      env:
+        GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+      run: |
+        curl -X DELETE \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/ScalefreeCOM/datavault4dbt/git/refs/heads/${{ inputs.dv4dbt-revision }}
+
