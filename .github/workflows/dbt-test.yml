@@ -499,6 +499,7 @@ jobs:
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
 
   collect-job-results:
+    if: always()
     needs: [ dbt-tests, dbt-macro-tests ]
 
     runs-on: ubuntu-latest
