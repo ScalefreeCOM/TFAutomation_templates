@@ -1,0 +1,24 @@
+on:
+  workflow_call:
+
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: test
+      run: echo "Hello World"
+
+  collect-job-results:
+    needs: test
+    runs-on: ubuntu-latest
+
+    outputs:
+      dbt-test-result: ${{ steps.results.outputs.dbt-test-result}}
+      dbt-macro-test-result: ${{ steps.results.outputs.dbt-macro-test-result}}
+
+    steps:
+    - name: Collect results
+      id: results
+      run: |
+        echo "dbt-test-result=${{ needs.test.result }}" >> $GITHUB_OUTPUT
