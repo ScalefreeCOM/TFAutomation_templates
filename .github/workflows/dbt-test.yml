@@ -14,13 +14,11 @@ on:
       dv4dbt-revision:
         required: true
         type: string
-      remote-triggered:
-        type: boolean
-        default: false
-      pr_id:
-        type: string
-        default: ''
-
+    outputs:
+      dbt-test-result: 
+        value: ${{ jobs.collect-job-results.outputs.dbt-test-result }}
+      dbt-macro-test-result: 
+        value: ${{ jobs.collect-job-results.outputs.dbt-macro-test-result }}
     secrets:
       TFAUTOMATION_AWS_ACCESS_KEY:
         required: true
@@ -500,39 +498,19 @@ jobs:
     - name: Terraform Destroy
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
 
-  push-command-delete-branch:
-    if: ${{ inputs.remote-triggered == 'true' }} 
+  collect-job-results:
     needs: [ dbt-tests, dbt-macro-tests ]
 
     runs-on: ubuntu-latest
+    outputs:
+      dbt-test-result: ${{ steps.results.outputs.dbt-test-result}}
+      dbt-macro-test-result: ${{ steps.results.outputs.dbt-macro-test-result}}
 
     steps:
-    - name: Generate token
-      id: generate_token
-      uses: actions/create-github-app-token@v1
-      with:
-        app-id: ${{ secrets.WORKFLOW_APP_ID }}  
-        private-key: ${{ secrets.WORKFLOW_APP_PRIVATE_KEY }}
-        owner: ${{ github.repository_owner }}
-        repositories: "datavault4dbt"
-
-    - name: Write pr command
-      env:
-        GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+    - name: Collect results
+      id: results
       run: |
-        COMMENT_BODY="RESULTS for ${{ inputs.db_name }}:\n dbt-tests: ${{ needs.dbt-tests.result }}\n dbt-macro-tests: ${{ needs.dbt-macro-tests.result }}"
-        curl -X POST \
-          -H "Authorization: token $GH_TOKEN" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/ScalefreeCOM/datavault4dbt/issues/${{ inputs.pr_id }}/comments \
-          -d "{\"body\": \"$COMMENT_BODY\"}"
+        echo "dbt-test-result=${{ needs.dbt-tests.result }}" >> $GITHUB_OUTPUT
+        echo "dbt-macro-test-result=${{ needs.dbt-macro-tests.result }}" >> $GITHUB_OUTPUT
 
-    - name: Delete pr-branch in datavault4dbt repo
-      env:
-        GH_TOKEN: ${{ steps.generate_token.outputs.token }}
-      run: |
-        curl -X DELETE \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/ScalefreeCOM/datavault4dbt/git/refs/heads/${{ inputs.dv4dbt-revision }}
 
