@@ -1,5 +1,8 @@
 on:
   workflow_call:
+    outputs:
+        dbt-test-result: 
+          value: ${{ jobs.collect-job-results.outputs.dbt-test-result }}
 
 
 jobs:
@@ -15,7 +18,6 @@ jobs:
 
     outputs:
       dbt-test-result: ${{ steps.results.outputs.dbt-test-result}}
-      dbt-macro-test-result: ${{ steps.results.outputs.dbt-macro-test-result}}
 
     steps:
     - name: Collect results
