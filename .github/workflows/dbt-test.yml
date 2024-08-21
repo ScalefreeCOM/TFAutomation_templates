@@ -232,11 +232,6 @@ jobs:
             db-environments/generated_files/dv4dbt-sa-keys.json
             db-environments/generated_files/profiles.yml
       
-  print-run_id:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print run_id
-        run: echo "run_id  ${{ github.run_id }}"
   
   dbt-tests:
     needs: generate-files
