@@ -14,6 +14,9 @@ on:
       dv4dbt-revision:
         required: true
         type: string
+      macro-tests:
+        required: true
+        type: boolean
     outputs:
       dbt-test-result: 
         value: ${{ jobs.collect-job-results.outputs.dbt-test-result }}
@@ -276,7 +279,7 @@ jobs:
   dbt-macro-tests:
       needs: generate-files
       runs-on: ubuntu-latest
-      if: success() || failure()
+      if: (success() || failure()) && ${{ inputs.macro-tests }}
           
       steps:
       - name: Checkout
