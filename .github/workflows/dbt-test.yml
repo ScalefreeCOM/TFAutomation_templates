@@ -279,7 +279,7 @@ jobs:
   dbt-macro-tests:
       needs: generate-files
       runs-on: ubuntu-latest
-      if: (success() || failure()) && ${{ inputs.macro-tests }}
+      if: ${{ (success() || failure()) && inputs.macro-tests }}
           
       steps:
       - name: Checkout
