@@ -425,7 +425,7 @@ jobs:
     #   run_id: ${{ github.run_id }}
     # #should be triggered on failure or success of dbt-tests.
     if: ${{ always() && inputs.auto-destroy != 'false' }} 
-    #needs: [ dbt-tests, dbt-macro-tests ]
+    needs: [ dbt-tests, dbt-macro-tests ]
 
     defaults:
       run:
