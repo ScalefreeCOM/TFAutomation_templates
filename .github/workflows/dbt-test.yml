@@ -234,7 +234,7 @@ jobs:
                   query_timeout: 60
                   connection_timeout: 60
                   socket_timeout: 60
-            postgres:
+            oracle:
               target: user_pw
               outputs:
                 user_pw:
