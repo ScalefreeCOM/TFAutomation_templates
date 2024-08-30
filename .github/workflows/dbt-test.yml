@@ -11,6 +11,12 @@ on:
         required: true
         default: ''
         type: string
+      dv4dbt-revision:
+        required: true
+        type: string
+      macro-tests:
+        required: true
+        type: boolean
     secrets:
       TFAUTOMATION_AWS_ACCESS_KEY:
         required: true
