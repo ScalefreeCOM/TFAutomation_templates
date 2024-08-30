@@ -229,7 +229,7 @@ jobs:
         run: echo "run_id  ${{ github.run_id }}"
   
   dbt-tests:
-    needs: generate-files
+    needs: [ db-environments, generate-files ]
     runs-on: ubuntu-latest
     if: success() || failure()
 
@@ -258,10 +258,35 @@ jobs:
       if: success() || failure()
       run: docker run --name dv4dbt-seed-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt seed --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
 
-    - name: Compare
+    - name: Compare ${{ inputs.db_name }} 
       if: ${{ inputs.db_name == 'bigquery' }}
       run: |
-        python $GITHUB_WORKSPACE/db-environments/techtest/testBigQuery.py -i '$GITHUB_WORKSPAC/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -p ${{ vars.BIGQUERY_PROJECT }} -d ${{ vars.BIGQUERY_DATASET }}${{ github.run_id }} -k $GITHUB_WORKSPACE/db-environments/generated_files/dv4dbt-sa-keys.json
+        python $GITHUB_WORKSPACE/db-environments/techtest/testBigQuery.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -p ${{ vars.BIGQUERY_PROJECT }} -d ${{ vars.BIGQUERY_DATASET }}${{ github.run_id }} -k $GITHUB_WORKSPACE/db-environments/generated_files/dv4dbt-sa-keys.json
+    
+    - name: Compare ${{ inputs.db_name }} 
+      if: ${{ inputs.db_name == 'exasol' }}
+      run: |
+        python $GITHUB_WORKSPACE/db-environments/techtest/testExasol.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -ho ${{ needs.db-environments.outputs.public_ip }} -p ${{ vars.EXASOL_PORT }} -u ${{ vars.EXASOL_DB_USERNAME }} -psw ${{ secrets.EXASOL_DB_PASSWORD }} -sch ${{ vars.EXASOL_DB_SCHEMA }}
+   
+    - name: Compare ${{ inputs.db_name }} 
+      if: ${{ inputs.db_name == 'postgres' }}
+      run: |
+        python $GITHUB_WORKSPACE/db-environments/techtest/testPostgres.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -ho ${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}} -p ${{ vars.POSTGRES_PORT }} -u ${{ vars.POSTGRES_DB_USERNAME }} -psw ${{ secrets.POSTGRES_DB_PASSWORD }} -db ${{ vars.POSTGRES_DB_SCHEMA }} -sch ${{ vars.POSTGRES_DB_SCHEMA }}
+    
+    - name: Compare ${{ inputs.db_name }} 
+      if: ${{ inputs.db_name == 'redshift' }}
+      run: |
+        python $GITHUB_WORKSPACE/db-environments/techtest/testRedshift.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -ho ${{ vars.REDSHIFT_DB_HOST_START }}${{ github.run_id }}${{vars.REDSHIFT_DB_HOST_END}} -p ${{ vars.REDSHIFT_PORT }} -u ${{ vars.REDSHIFT_DB_USERNAME }} -psw ${{ secrets.REDSHIFT_DB_PASSWORD }} -db ${{ vars.REDSHIFT_DB }} -sch ${{ vars.REDSHIFT_DB_SCHEMA }}
+    
+    - name: Compare ${{ inputs.db_name }} 
+      if: ${{ inputs.db_name == 'synapse' }}
+      run: |
+        python $GITHUB_WORKSPACE/db-environments/techtest/testSynapse.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -ho ${{ vars.SYNAPSE_SQL_ENDPOINT }} -u ${{ vars.SYNAPSE_DB_USERNAME }} -psw ${{ secrets.SYNAPSE_DB_PASSWORD }} -db ${{ vars.SYNAPSE_DB }} -sch ${{ vars.SYNAPSE_DB_SCHEMA }}
+    
+    - name: Compare ${{ inputs.db_name }} 
+      if: ${{ inputs.db_name == 'snowflake' }}
+      run: |
+        python $GITHUB_WORKSPACE/db-environments/techtest/testSnowflake.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -a ${{ vars.SNOWFLAKE_ACCOUNT }} -w ${{ vars.SNOWFLAKE_WAREHOUSE }} -u ${{ vars.SNOWFLAKE_USERNAME }} -psw ${{ secrets.SNOWFLAKE_PASSWORD }} -db ${{ vars.SNOWFLAKE_DB }} -sch ${{ vars.SNOWFLAKE_SCHEMA }}
     
       # - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 DBT_GLOBALS_VERSION=1
     #   if: success() || failure()
