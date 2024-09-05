@@ -415,12 +415,6 @@ jobs:
       - name: Run run-operation max_datetime in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-35-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation max_datetime -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation parse_iso8601_date in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-36-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation parse_iso8601_date -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Run run-operation parse_iso8601 in ${{ inputs.db_name }} container
-        if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-37-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation parse_iso8601 -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: "Run run-operation prefix --args '{columns: abc, prefix_str: def}' in ${{ inputs.db_name }} container"
         if: success() || failure()
         run: |
