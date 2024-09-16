@@ -66,7 +66,7 @@ jobs:
         aws-region: eu-west-1
 
     - name: 'Az CLI login'
-      if: ${{ inputs.db_name == 'synapse' }}
+      if: ${{ inputs.db_name == 'synapse' || inputs.db_name == 'fabric'}}
       uses: azure/login@v1
       with:
         client-id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
@@ -231,6 +231,21 @@ jobs:
                   query_timeout: 60
                   connection_timeout: 60
                   socket_timeout: 60
+            synapse:
+              target: user_pw
+              outputs:
+                user_pw:
+                  type: synapse
+                  driver: ${{ vars.FABRIC_DRIVER }}
+                  server: ${{ vars.FABRIC_SQL_ENDPOINT_START }}${{ github.run_id }}${{ vars.FABRIC_SQL_ENDPOINT_END }}
+                  port: ${{ vars.FABRIC_PORT }}
+                  database: ${{ vars.FABRIC_DB }}${{ github.run_id }}
+                  schema: ${{ vars.FABRIC_DB_SCHEMA }}
+                  authentication: ServicePrincipal
+                  tenant_id: ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}}
+                  client_id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
+                  client_secret: ${{ secrets.AZURE_CLIENT_SECRET}}
+                  threads: ${{ vars.FABRIC_THREADS }}
             EOF
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
@@ -451,7 +466,7 @@ jobs:
         aws-region: eu-west-1
 
     - name: 'Az CLI login'
-      if: ${{ inputs.db_name == 'synapse' }}
+      if: ${{ inputs.db_name == 'synapse' || inputs.db_name == 'fabric'}}
       uses: azure/login@v1
       with:
         client-id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
