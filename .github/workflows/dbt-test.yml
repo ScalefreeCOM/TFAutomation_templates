@@ -238,7 +238,7 @@ jobs:
                   type: fabric
                   driver: ${{ vars.FABRIC_DRIVER }}
                   server: ${{ vars.FABRIC_SQL_ENDPOINT_START }}${{ github.run_id }}${{ vars.FABRIC_SQL_ENDPOINT_END }}
-                  port: ${{ vars.FABRIC_PORT }}
+                  port: "${{ vars.FABRIC_PORT }}"
                   database: ${{ vars.FABRIC_DB }}${{ github.run_id }}
                   schema: ${{ vars.FABRIC_DB_SCHEMA }}
                   authentication: ServicePrincipal
