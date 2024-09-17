@@ -231,11 +231,11 @@ jobs:
                   query_timeout: 60
                   connection_timeout: 60
                   socket_timeout: 60
-            synapse:
+            fabric:
               target: user_pw
               outputs:
                 user_pw:
-                  type: synapse
+                  type: fabric
                   driver: ${{ vars.FABRIC_DRIVER }}
                   server: ${{ vars.FABRIC_SQL_ENDPOINT_START }}${{ github.run_id }}${{ vars.FABRIC_SQL_ENDPOINT_END }}
                   port: ${{ vars.FABRIC_PORT }}
