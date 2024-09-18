@@ -247,7 +247,7 @@ jobs:
                   server: ${{ secrets.FABRIC_SQL_ENDPOINT_START }}${{ vars.FABRIC_SQL_ENDPOINT_END }}
                   port: ${{ vars.FABRIC_PORT }}
                   database: ${{ vars.FABRIC_DB }}
-                  schema: ${{ vars.FABRIC_DB_SCHEMA }}${{ github.run_id }}
+                  schema: ${{ vars.FABRIC_SCHEMA }}${{ github.run_id }}
                   authentication: ServicePrincipal
                   tenant_id: ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}}
                   client_id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
