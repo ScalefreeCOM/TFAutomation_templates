@@ -85,6 +85,13 @@ jobs:
           cd $GITHUB_WORKSPACE/db-environments/synapse/ && cat << EOF > terraform.tfvars
           sql_administrator_login_password="${{ secrets.SYNAPSE_DB_PASSWORD }}"
           EOF
+    - name: create terraform.tfvars for fabric
+      if: ${{ inputs.db_name == 'fabric' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/fabric/ && cat << EOF > terraform.tfvars
+          connectionStringID="${{ secrets.FABRIC_SQL_ENDPOINT_START }}"
+          warehouseName="${{ vars.FABRIC_DB }}"
+          EOF
     - name: Create terraform.tfvars for postgres
       if: ${{ inputs.db_name == 'postgres' }}
       run: |
@@ -237,10 +244,10 @@ jobs:
                 user_pw:
                   type: fabric
                   driver: ${{ vars.FABRIC_DRIVER }}
-                  server: ${{ vars.FABRIC_SQL_ENDPOINT_START }}${{ github.run_id }}${{ vars.FABRIC_SQL_ENDPOINT_END }}
-                  port: "${{ vars.FABRIC_PORT }}"
-                  database: ${{ vars.FABRIC_DB }}${{ github.run_id }}
-                  schema: ${{ vars.FABRIC_DB_SCHEMA }}
+                  server: ${{ secrets.FABRIC_SQL_ENDPOINT_START }}${{ vars.FABRIC_SQL_ENDPOINT_END }}
+                  port: ${{ vars.FABRIC_PORT }}
+                  database: ${{ vars.FABRIC_DB }}
+                  schema: ${{ vars.FABRIC_DB_SCHEMA }}${{ github.run_id }}
                   authentication: ServicePrincipal
                   tenant_id: ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}}
                   client_id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
