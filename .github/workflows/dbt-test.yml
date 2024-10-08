@@ -288,22 +288,22 @@ jobs:
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to True
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
+        docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.set_casing: 'lowercase', datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to True
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
+        docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.set_casing: 'lowercase', datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
 
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to False
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+        docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.set_casing: 'lowercase', datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
     
     #For Fabric the schema needs to be empty after the last test. In that case we use an extra variable to delete every object in the schema after the tests.
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to False and empty schema
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_EMPTY_FABRIC_SCHEMA_ON_RUN_END=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+        docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_EMPTY_FABRIC_SCHEMA_ON_RUN_END=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.set_casing: 'lowercase', datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
 
   dbt-macro-tests:
       needs: generate-files
