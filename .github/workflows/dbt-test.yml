@@ -113,7 +113,7 @@ jobs:
           snowflakePassword="${{ secrets.SNOWFLAKE_PASSWORD }}"
           EOF
     - name: Create terraform.tfvars for databricks
-      if: ${{ inputs.db_name == 'snowflake' }}
+      if: ${{ inputs.db_name == 'databricks' }}
       run: |
           cd $GITHUB_WORKSPACE/db-environments/databricks/ && cat << EOF > terraform.tfvars
           token="${{ secrets.DATABRICKS_TOKEN }}"
