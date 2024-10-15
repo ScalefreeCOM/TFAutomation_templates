@@ -274,7 +274,7 @@ jobs:
               outputs:
                 dev:
                   type: databricks
-                  schema: ${{ vars.DATABICKS_SCHEMA }} dv4dbt
+                  schema: ${{ vars.DATABICKS_SCHEMA }}${{ github.run_id }}
                   host: ${{ secrets.DATABRICKS_HOST }}
                   http_path: sql/protocolv1/o/${{ needs.db-environments.outputs.databricks_workspace_id }}/${{ needs.db-environments.outputs.databricks_cluster_id }}
                   token: ${{ secrets.DATABRICKS_TOKEN }}
