@@ -45,6 +45,8 @@ on:
         required: true
       EXASOL_DB_PASSWORD:
         required: true
+      ORACLE_DB_PASSWORD:
+        required: true  
 
 jobs:
   db-environments:
@@ -97,6 +99,12 @@ jobs:
       run: |
           cd $GITHUB_WORKSPACE/db-environments/postgres/ && cat << EOF > terraform.tfvars
           rds_postgres_password="${{ secrets.POSTGRES_DB_PASSWORD }}"
+          EOF
+    - name: Create terraform.tfvars for oracle
+      if: ${{ inputs.db_name == 'oracle' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/oracle/ && cat << EOF > terraform.tfvars
+          rds_oracle_password="${{ secrets.ORACLE_DB_PASSWORD }}"
           EOF
     - name: Create terraform.tfvars for redshift
       if: ${{ inputs.db_name == 'redshift' }}
@@ -253,6 +261,20 @@ jobs:
                   client_id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
                   client_secret: ${{ secrets.AZURE_CLIENT_SECRET}}
                   threads: ${{ vars.FABRIC_THREADS }}
+            oracle:
+              target: user_pw
+              outputs:
+                user_pw:
+                  type: oracle
+                  user: ${{ vars.ORACLE_DB_USER }}
+                  pass: ${{ secrets.ORACLE_DB_PASSWORD }}
+                  protocol: ${{ vars.ORACLE_DB_PROTOCOL }}
+                  host: ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }}
+                  port: ${{ vars.ORACLE_DB_PORT }}
+                  service: ${{ vars.ORACLE_DB_SERVICE }}
+                  database: ${{ vars.ORACLE_DB }}
+                  schema: ${{ vars.ORACLE_DB_SCHEMA }}
+                  threads: ${{ vars.ORACLE_DB_THREADS }}
             EOF
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
@@ -304,6 +326,7 @@ jobs:
       if: success() || failure()
       run: |
         docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_EMPTY_FABRIC_SCHEMA_ON_RUN_END=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.set_casing: 'lowercase', datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+
 
   dbt-macro-tests:
       needs: generate-files
