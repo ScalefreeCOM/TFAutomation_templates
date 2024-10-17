@@ -432,9 +432,13 @@ jobs:
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-26-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation generate_schema_name -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: "Run run-operation get_query_results_as_dict --args '{query: select 1}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
+        if: ${{ (success() || failure()) && inputs.db_name != 'oracle' }}
         run: |
           docker run --name dv4dbt-macro-test-27-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_query_results_as_dict --args '{query: select 1}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      - name: "Run run-operation get_query_results_as_dict --args '{query: select 1 from dual}' in ${{ inputs.db_name }} container"
+        if: ${{ (success() || failure()) && inputs.db_name == 'oracle' }}
+        run: |
+          docker run --name dv4dbt-macro-test-27-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_query_results_as_dict --args '{query: select 1 from dual}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: "Run run-operation get_standard_string --args '{string_list: abc}' in ${{ inputs.db_name }} container"
         if: success() || failure()
         run: |
