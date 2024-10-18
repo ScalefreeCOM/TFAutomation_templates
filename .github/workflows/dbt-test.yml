@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       auto-destroy:
-        description: 'If false, the environment will be running until destroyed manually. On every other value they will be destroyed after testing.'
+        description: 'Auto Destroy: Only "true" will prevent destruction.'
         default: 'true'
         type: string
       db_name:
