@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       auto-destroy:
-        description: 'If false, the environment will be running until destroyed manually. On every other value they will be destroyed after testing.'
+        description: 'Auto Destroy: Only "true" will prevent destruction.'
         default: 'true'
         type: string
       db_name:
@@ -44,6 +44,12 @@ on:
       SNOWFLAKE_PASSWORD:
         required: true
       EXASOL_DB_PASSWORD:
+        required: true
+      ORACLE_DB_PASSWORD:
+        required: true
+      DATABRICKS_HOST:
+        required: true
+      DATABRICKS_TOKEN:
         required: true
 
 jobs:
@@ -99,6 +105,12 @@ jobs:
       run: |
           cd $GITHUB_WORKSPACE/db-environments/postgres/ && cat << EOF > terraform.tfvars
           rds_postgres_password="${{ secrets.POSTGRES_DB_PASSWORD }}"
+          EOF
+    - name: Create terraform.tfvars for oracle
+      if: ${{ inputs.db_name == 'oracle' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/oracle/ && cat << EOF > terraform.tfvars
+          rds_oracle_password="${{ secrets.ORACLE_DB_PASSWORD }}"
           EOF
     - name: Create terraform.tfvars for redshift
       if: ${{ inputs.db_name == 'redshift' }}
@@ -279,6 +291,20 @@ jobs:
                   http_path: sql/protocolv1/o/${{ needs.db-environments.outputs.databricks_workspace_id }}/${{ needs.db-environments.outputs.databricks_cluster_id }}
                   token: ${{ secrets.DATABRICKS_TOKEN }}
                   threads: ${{ vars.DATABICKS_THREADS }}
+            oracle:
+              target: user_pw
+              outputs:
+                user_pw:
+                  type: oracle
+                  user: ${{ vars.ORACLE_DB_USER }}
+                  pass: ${{ secrets.ORACLE_DB_PASSWORD }}
+                  protocol: ${{ vars.ORACLE_DB_PROTOCOL }}
+                  host: ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }}
+                  port: ${{ vars.ORACLE_DB_PORT }}
+                  service: ${{ vars.ORACLE_DB_SERVICE }}
+                  database: ${{ vars.ORACLE_DB }}
+                  schema: ${{ vars.ORACLE_DB_SCHEMA }}
+                  threads: ${{ vars.ORACLE_DB_THREADS }}
             EOF
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
@@ -314,22 +340,23 @@ jobs:
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to True
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.set_casing: 'lowercase', datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
+        docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.set_casing: "lowercase", datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to True
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.set_casing: 'lowercase', datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
+        docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.set_casing: "lowercase", datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
 
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to False
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.set_casing: 'lowercase', datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+        docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.set_casing: "lowercase", datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
     
     #For Fabric the schema needs to be empty after the last test. In that case we use an extra variable to delete every object in the schema after the tests.
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to False and empty schema
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_EMPTY_FABRIC_SCHEMA_ON_RUN_END=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.set_casing: 'lowercase', datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+        docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_EMPTY_FABRIC_SCHEMA_ON_RUN_END=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.set_casing: "lowercase", datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+
 
   dbt-macro-tests:
       needs: generate-files
@@ -435,9 +462,13 @@ jobs:
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-26-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation generate_schema_name -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: "Run run-operation get_query_results_as_dict --args '{query: select 1}' in ${{ inputs.db_name }} container"
-        if: success() || failure()
+        if: ${{ (success() || failure()) && inputs.db_name != 'oracle' }}
         run: |
           docker run --name dv4dbt-macro-test-27-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_query_results_as_dict --args '{query: select 1}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+      - name: "Run run-operation get_query_results_as_dict --args '{query: select 1 from dual}' in ${{ inputs.db_name }} container"
+        if: ${{ (success() || failure()) && inputs.db_name == 'oracle' }}
+        run: |
+          docker run --name dv4dbt-macro-test-27-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation get_query_results_as_dict --args '{query: select 1 from dual}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: "Run run-operation get_standard_string --args '{string_list: abc}' in ${{ inputs.db_name }} container"
         if: success() || failure()
         run: |
