@@ -46,7 +46,11 @@ on:
       EXASOL_DB_PASSWORD:
         required: true
       ORACLE_DB_PASSWORD:
-        required: true  
+        required: true
+      DATABRICKS_HOST:
+        required: true
+      DATABRICKS_TOKEN:
+        required: true
 
 jobs:
   db-environments:
@@ -56,6 +60,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       public_ip: ${{ steps.tf_output.outputs.public_ip }}
+      databricks_cluster_id: ${{ steps.tf_output_databricks.outputs.databricks_cluster_id }}
+      databricks_workspace_id: ${{ steps.tf_output_databricks.outputs.databricks_workspace_id }}
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -118,6 +124,13 @@ jobs:
           cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > terraform.tfvars
           snowflakePassword="${{ secrets.SNOWFLAKE_PASSWORD }}"
           EOF
+    - name: Create terraform.tfvars for databricks
+      if: ${{ inputs.db_name == 'databricks' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/databricks/ && cat << EOF > terraform.tfvars
+          token="${{ secrets.DATABRICKS_TOKEN }}"
+          host="${{ secrets.DATABRICKS_HOST}}"
+          EOF
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
@@ -142,6 +155,13 @@ jobs:
       run: |
         echo "public_ip=$(terraform output -json | jq -r .publicIP.value)" >> $GITHUB_OUTPUT
         sleep 30
+
+    - name: Terraform Output
+      if: ${{ inputs.db_name == 'databricks' }}
+      id: tf_output_databricks
+      run: |
+        echo "databricks_cluster_id=$(terraform output -json | jq -r .databricks_cluster_id.value)" >> $GITHUB_OUTPUT
+        echo "databricks_workspace_id=$(terraform output -json | jq -r .databricks_workspace_id.value)" >> $GITHUB_OUTPUT
 
     - name: Setup environment and start Server
       if: ${{ inputs.db_name == 'exasol' }}
@@ -261,6 +281,16 @@ jobs:
                   client_id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
                   client_secret: ${{ secrets.AZURE_CLIENT_SECRET}}
                   threads: ${{ vars.FABRIC_THREADS }}
+            databricks:
+              target: dev
+              outputs:
+                dev:
+                  type: databricks
+                  schema: ${{ vars.DATABICKS_SCHEMA }}${{ github.run_id }}
+                  host: ${{ secrets.DATABRICKS_HOST }}
+                  http_path: sql/protocolv1/o/${{ needs.db-environments.outputs.databricks_workspace_id }}/${{ needs.db-environments.outputs.databricks_cluster_id }}
+                  token: ${{ secrets.DATABRICKS_TOKEN }}
+                  threads: ${{ vars.DATABICKS_THREADS }}
             oracle:
               target: user_pw
               outputs:
@@ -533,6 +563,13 @@ jobs:
       run: |
           cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > terraform.tfvars
           snowflakePassword="${{ secrets.SNOWFLAKE_PASSWORD }}"
+          EOF
+    - name: Create terraform.tfvars for databricks
+      if: ${{ inputs.db_name == 'databricks' }}
+      run: |
+          cd $GITHUB_WORKSPACE/db-environments/databricks/ && cat << EOF > terraform.tfvars
+          token="${{ secrets.DATABRICKS_TOKEN }}"
+          host="${{ secrets.DATABRICKS_HOST}}"
           EOF
 
     - name: Setup Terraform
