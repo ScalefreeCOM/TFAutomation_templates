@@ -20,6 +20,20 @@ on:
          required: true
       TFAUTOMATION_AWS_SECRET_ACCESS_KEY:
          required: true
+  workflow_dispatch:
+    inputs:
+      runs-on:
+        type: string
+        default: ubuntu-latest
+      region:
+        type: string
+        default: "eu-west-1"
+      ecr_repo:
+        type: string
+        required: true
+      image_tag:
+        type: string
+        default: latest
                 
 jobs:
   push:
@@ -40,6 +54,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
         
       - name: Build, tag, and push image to Amazon ECR
+        if: github.event_name == 'workflow_call'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ inputs.ecr_repo }}
@@ -48,5 +63,12 @@ jobs:
           docker build --build-arg="ssh_pub_key=${{ secrets.SSH_KEY }}" --no-cache -t $ECR_REPOSITORY .
           docker tag $ECR_REPOSITORY $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
+      - name: Build image # For manually checking if docker build is working.
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ inputs.ecr_repo }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          docker build --build-arg="ssh_pub_key=${{ secrets.SSH_KEY }}" --no-cache -t $ECR_REPOSITORY .
   
