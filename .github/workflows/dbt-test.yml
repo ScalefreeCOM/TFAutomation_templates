@@ -652,6 +652,15 @@ jobs:
     - name: Terraform Destroy
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
 
+    # Create Token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
+    - name: Get Access Token
+      id: get_token
+      run: |
+        TOKEN_RESPONSE=$(curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=client_credentials&client_id=${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID }}&client_secret=${{ secrets.WORKFLOW_APP_FABRIC_SECRET }}&resource=https://management.azure.com/" \
+        https://login.microsoftonline.com/${{ secrets.TFAUTOMATION_AZURE_TENANT_ID }}/oauth2/token)
+        echo "ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r .access_token)" >> $GITHUB_ENV
+
     - name: Decrement active count in DynamoDB and stop Capacity
       if: ${{ inputs.db_name == 'fabric' }}
       run: |
