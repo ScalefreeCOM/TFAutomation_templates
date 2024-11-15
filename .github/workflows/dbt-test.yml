@@ -113,7 +113,7 @@ jobs:
           # Increment the semaphore or set to 1 if it don't exist.
           aws dynamodb update-item \
             --table-name dv4dbt-cicd-semaphore \
-            --key '{"id": {"S": "capacity"}}' \
+            --key '{"ID": {"S": "capacity"}}' \
             --update-expression "SET active_count = if_not_exists(active_count, :start) + :incr" \
             --expression-attribute-values '{":start": {"N": "0"}, ":incr": {"N": "1"}}' \
             --return-values "UPDATED_NEW" > output.json
