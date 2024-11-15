@@ -79,6 +79,7 @@ jobs:
 
     # Microsoft Azure Login
     - name: 'Az CLI login'
+      id: azure-login
       if: ${{ inputs.db_name == 'synapse' || inputs.db_name == 'fabric'}}
       uses: azure/login@v1
       with:
@@ -92,6 +93,15 @@ jobs:
       uses: 'google-github-actions/auth@v0.4.0'
       with:
         credentials_json: '${{ secrets.DV4DBT_SA_KEYS }}'
+    
+    # Create Token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
+    - name: Get Access Token
+      id: get_token
+      run: |
+        TOKEN_RESPONSE=$(curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=client_credentials&client_id=${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID }}&client_secret=${{ secrets.WORKFLOW_APP_FABRIC_SECRET }}&resource=https://management.azure.com/" \
+        https://login.microsoftonline.com/${{ secrets.TFAUTOMATION_AZURE_TENANT_ID }}/oauth2/token)
+        echo "ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r .access_token)" >> $GITHUB_ENV
 
     # Setting terraform input variables for different Database Environments.
     - name: Create terraform.tfvars for synapse
@@ -107,6 +117,35 @@ jobs:
           connectionStringID="${{ secrets.FABRIC_SQL_ENDPOINT_START }}"
           warehouseName="${{ vars.FABRIC_DB }}"
           EOF
+    - name: Increment active count in DynamoDB and start Capacity
+      if: ${{ inputs.db_name == 'fabric' }}
+      run: |
+          # Increment the semaphore
+          aws dynamodb update-item \
+            --table-name dv4dbt-cicd-semaphore \
+            --key '{"ID": {"S": "capacity"}}' \
+            --update-expression "SET active_count = active_count + :incr" \
+            --expression-attribute-values '{":incr": {"N": "1"}}' \
+            --return-values "UPDATED_NEW" > output.json
+          
+          # Extract the value of semaphore
+          ACTIVE_COUNT=$(cat output.json | jq -r '.Attributes.active_count.N')
+
+          # Start capacity if semaphore is 1 after incrementing.
+          if [ "$ACTIVE_COUNT" -eq "1" ]; then
+            echo "Starting capacity as this is the first active run."
+            curl -X POST \
+              -H "Authorization: Bearer $ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -H "Content-Length: 0" \
+              "https://management.azure.com/subscriptions/${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}/resourceGroups/dv4dbt_db_environment/providers/Microsoft.Fabric/capacities/dv4dbtcicd/resume?api-version=2023-11-01"
+            # Wait for 15 seconds to allow the capacity to start.
+            echo "Waiting 15 seconds for capacity to start..."
+            sleep 15
+          else
+            echo "Capacity is already running with $ACTIVE_COUNT active runs."
+          fi
+          
     - name: Create terraform.tfvars for postgres
       if: ${{ inputs.db_name == 'postgres' }}
       run: |
@@ -612,6 +651,41 @@ jobs:
     # destruction of created terraform ressources.
     - name: Terraform Destroy
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
+
+    # Create Token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
+    - name: Get Access Token
+      id: get_token
+      run: |
+        TOKEN_RESPONSE=$(curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=client_credentials&client_id=${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID }}&client_secret=${{ secrets.WORKFLOW_APP_FABRIC_SECRET }}&resource=https://management.azure.com/" \
+        https://login.microsoftonline.com/${{ secrets.TFAUTOMATION_AZURE_TENANT_ID }}/oauth2/token)
+        echo "ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r .access_token)" >> $GITHUB_ENV
+
+    - name: Decrement active count in DynamoDB and stop Capacity
+      if: ${{ inputs.db_name == 'fabric' }}
+      run: |
+          # Decrement semaphore and get the new Value
+          aws dynamodb update-item \
+            --table-name dv4dbt-cicd-semaphore \
+            --key '{"ID": {"S": "capacity"}}' \
+            --update-expression "SET active_count = active_count - :decr" \
+            --expression-attribute-values '{":decr": {"N": "1"}}' \
+            --return-values "UPDATED_NEW" > output.json
+
+          # Get new value of active_count (semaphore) 
+          ACTIVE_COUNT=$(cat output.json | jq -r '.Attributes.active_count.N')
+
+          # If semaphore = 0, capacity will be paused
+          if [ "$ACTIVE_COUNT" -eq "0" ]; then
+            echo "Pausing capacity as no active runs are left."
+             curl -X POST \
+              -H "Authorization: Bearer $ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -H "Content-Length: 0" \
+              "https://management.azure.com/subscriptions/${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}/resourceGroups/dv4dbt_db_environment/providers/Microsoft.Fabric/capacities/dv4dbtcicd/suspend?api-version=2023-11-01"
+          else
+            echo "Remaining active runs: $ACTIVE_COUNT. Capacity will not be paused."
+          fi
 
     # Job to send the results of tests for better monitoring.
   collect-job-results:
