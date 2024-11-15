@@ -79,6 +79,7 @@ jobs:
 
     # Microsoft Azure Login
     - name: 'Az CLI login'
+      id: azure-login
       if: ${{ inputs.db_name == 'synapse' || inputs.db_name == 'fabric'}}
       uses: azure/login@v1
       with:
@@ -125,7 +126,7 @@ jobs:
           if [ "$ACTIVE_COUNT" -eq "1" ]; then
             echo "Starting capacity as this is the first active run."
             curl -X POST \
-              -H "Authorization: Bearer ${{ secrets.AZURE_ACCESS_TOKEN }}" \
+              -H "Authorization: Bearer ${{ steps.azure-login.outputs.access_token }}" \
               -H "Content-Type: application/json" \
               -H "Content-Length: 0" \
               "https://management.azure.com/subscriptions/${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}/resourceGroups/dv4dbt_db_environment/providers/Microsoft.Fabric/capacities/dv4dbtcicd/resume?api-version=2023-11-01"
