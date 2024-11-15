@@ -93,6 +93,15 @@ jobs:
       uses: 'google-github-actions/auth@v0.4.0'
       with:
         credentials_json: '${{ secrets.DV4DBT_SA_KEYS }}'
+    
+    # Create Token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
+    - name: Get Access Token
+      id: get_token
+      run: |
+        TOKEN_RESPONSE=$(curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=client_credentials&client_id=${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID }}&client_secret=${{ secrets.WORKFLOW_APP_FABRIC_SECRET }}&resource=https://management.azure.com/" \
+        https://login.microsoftonline.com/${{ secrets.TFAUTOMATION_AZURE_TENANT_ID }}/oauth2/token)
+        echo "ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r .access_token)" >> $GITHUB_ENV
 
     # Setting terraform input variables for different Database Environments.
     - name: Create terraform.tfvars for synapse
@@ -126,7 +135,7 @@ jobs:
           if [ "$ACTIVE_COUNT" -eq "1" ]; then
             echo "Starting capacity as this is the first active run."
             curl -X POST \
-              -H "Authorization: Bearer ${{ steps.azure-login.outputs.access_token }}" \
+              -H "Authorization: Bearer $ACCESS_TOKEN" \
               -H "Content-Type: application/json" \
               -H "Content-Length: 0" \
               "https://management.azure.com/subscriptions/${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}/resourceGroups/dv4dbt_db_environment/providers/Microsoft.Fabric/capacities/dv4dbtcicd/resume?api-version=2023-11-01"
