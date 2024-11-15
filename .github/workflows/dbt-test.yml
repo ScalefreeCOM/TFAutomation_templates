@@ -682,7 +682,7 @@ jobs:
               -H "Authorization: Bearer $ACCESS_TOKEN" \
               -H "Content-Type: application/json" \
               -H "Content-Length: 0" \
-              "https://management.azure.com/subscriptions/${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}/resourceGroups/dv4dbt_db_environment/providers/Microsoft.Fabric/capacities/dv4dbtcicd/suspend?api-version=2023-05-01"
+              "https://management.azure.com/subscriptions/${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}/resourceGroups/dv4dbt_db_environment/providers/Microsoft.Fabric/capacities/dv4dbtcicd/suspend?api-version=2023-11-01"
           else
             echo "Remaining active runs: $ACTIVE_COUNT. Capacity will not be paused."
           fi
