@@ -139,6 +139,9 @@ jobs:
               -H "Content-Type: application/json" \
               -H "Content-Length: 0" \
               "https://management.azure.com/subscriptions/${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}/resourceGroups/dv4dbt_db_environment/providers/Microsoft.Fabric/capacities/dv4dbtcicd/resume?api-version=2023-11-01"
+            # Wait for 15 seconds to allow the capacity to start.
+            echo "Waiting 15 seconds for capacity to start..."
+            sleep 15
           else
             echo "Capacity is already running with $ACTIVE_COUNT active runs."
           fi
