@@ -124,7 +124,10 @@ jobs:
           # Start capacity if semaphore is 1 after incrementing.
           if [ "$ACTIVE_COUNT" -eq "1" ]; then
             echo "Starting capacity as this is the first active run."
-          # todo: start capacity here
+            curl -X POST \
+              -H "Authorization: Bearer ${{ secrets.AZURE_ACCESS_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              "https://management.azure.com/subscriptions/${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}/resourceGroups/dv4dbt_db_environment/providers/Microsoft.Fabric/capacities/dv4dbtcicd/resume?api-version=2023-11-01"
           else
             echo "Capacity is already running with $ACTIVE_COUNT active runs."
           fi
