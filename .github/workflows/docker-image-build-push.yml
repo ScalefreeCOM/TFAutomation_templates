@@ -39,7 +39,7 @@ on:
         default: latest
       push_to_aws:
         type: boolean
-        default: true
+        default: false
                 
 jobs:
   push:
