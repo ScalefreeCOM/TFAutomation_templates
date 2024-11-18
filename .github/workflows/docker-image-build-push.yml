@@ -15,6 +15,9 @@ on:
       image_tag:
         type: string
         default: latest
+      push_to_aws:
+        type: boolean
+        default: false
     secrets:
       TFAUTOMATION_AWS_ACCESS_KEY:
          required: true
@@ -34,6 +37,9 @@ on:
       image_tag:
         type: string
         default: latest
+      push_to_aws:
+        type: boolean
+        default: true
                 
 jobs:
   push:
@@ -54,7 +60,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
         
       - name: Build, tag, and push image to Amazon ECR
-        if: github.event_name == 'push'
+        if: ${{ github.event_name == 'push' || inputs.push_to_aws }}
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ inputs.ecr_repo }}
