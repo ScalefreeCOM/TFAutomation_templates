@@ -168,8 +168,8 @@ jobs:
     - name: Create terraform.tfvars for snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
-          cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > terraform.tfvars
-          snowflakeKey="${{ secrets.SNOWFLAKE_PRIVATE_KEY }}"
+          cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > snowflake_authenticator_key.pem
+          ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           EOF
     - name: Create terraform.tfvars for databricks
       if: ${{ inputs.db_name == 'databricks' }}
