@@ -661,6 +661,7 @@ jobs:
 
     # Create Token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
     - name: Get Access Token
+      if: ${{ inputs.db_name == 'fabric' }}
       id: get_token
       run: |
         TOKEN_RESPONSE=$(curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
