@@ -248,7 +248,7 @@ jobs:
                 user_pw:
                   type: snowflake
                   user: ${{ vars.SNOWFLAKE_USERNAME }}
-                  private_key_path: /home/runner/work/datavault4dbt-ci-cd/db-environments/genereated_files/snowflake_authenticator_key.pem                  
+                  private_key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_DBT }}                
                   account: ${{ vars.SNOWFLAKE_ACCOUNT }}
                   role: ${{ vars.SNOWFLAKE_ROLE }}
                   database: ${{ vars.SNOWFLAKE_DB }}
