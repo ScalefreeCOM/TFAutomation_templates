@@ -248,7 +248,7 @@ jobs:
                 user_pw:
                   type: snowflake
                   user: ${{ vars.SNOWFLAKE_USERNAME }}
-                  password: ${{ secrets.SNOWFLAKE_PASSWORD }}
+                  private_key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
                   
                   account: ${{ vars.SNOWFLAKE_ACCOUNT }}
                   role: ${{ vars.SNOWFLAKE_ROLE }}
