@@ -3,7 +3,7 @@ name: 'dbt tests'
 on:
   workflow_call:
     inputs:
-      auto-destroy: # Destroy ressources for every vaue except 'false' after the tests are finished
+      auto-destroy: # Destroy resources for every value except 'false' after the tests are finished
         description: 'Auto Destroy: Only "true" will prevent destruction.'
         default: 'true'
         type: string
@@ -11,13 +11,13 @@ on:
         required: true
         default: ''
         type: string
-      dv4dbt-revision: # Name of the branch in datavault4dbt repositoy that should be tested
+      dv4dbt-revision: # Name of the branch in datavault4dbt repository  that should be tested
         required: true
         type: string
       macro-tests: # Input to determine if macro tests should be executed or not
         required: true
         type: boolean
-    outputs: #Outputs for tests results for PR comment.
+    outputs: #Outputs for test results for PR comment.
       dbt-test-result: 
         value: ${{ jobs.collect-job-results.outputs.dbt-test-result }}
       dbt-macro-test-result: 
@@ -59,7 +59,7 @@ jobs:
         working-directory: ./db-environments/${{ inputs.db_name }} # Setting working directory for different databases
     runs-on: ubuntu-latest
     outputs: 
-      # Output of IP Adress from Exasol EC2 instance
+      # Output of IP address from Exasol EC2 instance
       public_ip: ${{ steps.tf_output.outputs.public_ip }}
 
       # Output of Cluster- and Workspace-ID for Databricks. 
@@ -185,7 +185,7 @@ jobs:
         terraform_version: 1.8.0
         terraform_wrapper: false
     
-    # Initialize Terraform backend dynamicall with run_id for each database.
+    # Initialize Terraform backend dynamically with run_id for each database.
     - name: Terraform Init
       run: terraform init -backend-config "key=datavault4dbtenvironments/${{ github.run_id }}/${{ inputs.db_name }}/terraform.state" -backend-config "bucket=scalefree-tf-backend" -backend-config "region=eu-west-1" -backend-config "dynamodb_table=scalefree-tf-lock-backend"
         
@@ -199,7 +199,7 @@ jobs:
       run: |
         aws sqs send-message --queue-url ${{ secrets.FIFO_SQS_QUEUE_URL }} --message-body "${{ github.run_id }}/${{ inputs.db_name }}" --message-group-id ${{ inputs.db_name }} --message-deduplication-id ${{ inputs.db_name }}
 
-    # Giving the IP Adress of exasol EC2 instance as output from terraform to GitHub. 
+    # Giving the IP Adress of exasol EC2 instance as output from Terraform to GitHub. 
     - name: Terraform Output
       if: ${{ inputs.db_name == 'exasol' }}
       id: tf_output
@@ -207,7 +207,7 @@ jobs:
         echo "public_ip=$(terraform output -json | jq -r .publicIP.value)" >> $GITHUB_OUTPUT
         sleep 30
 
-    # Giving the Cluster- and Workspace-ID of Databricks environment from terraform to GitHub.
+    # Giving the Cluster- and Workspace-ID of Databricks environment from Terraform to GitHub.
     - name: Terraform Output
       if: ${{ inputs.db_name == 'databricks' }}
       id: tf_output_databricks
@@ -408,8 +408,8 @@ jobs:
       run: |
         docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.set_casing: "lowercase", datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
     
-    # For Fabric the schema needs to be empty after the last test. In that case we use an extra variable to delete every object in the schema after the tests.
-    # DBT tests checking if it is an fabric environment as well. 
+    # For Fabric the schema needs to be empty after the last test. In that case, we use an extra variable to delete every object in the schema after the tests.
+    # DBT tests checking if it is a fabric environment as well. 
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to False and empty schema
       if: success() || failure()
       run: |
@@ -432,7 +432,7 @@ jobs:
           name: my-files
           path: db-environments/generated_files
 
-      # Waiting for Exasol server to start.
+      # Waiting for the Exasol server to start.
       - name: Wait 60s
         if: ${{ inputs.db_name == 'exasol' }}
         run: sleep 60
@@ -524,7 +524,7 @@ jobs:
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-26-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation generate_schema_name -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       
-      # Run different tests for oracle and every other database, because of different syntax in oracle.
+      # Run different tests for Oracle and every other database, because of different syntax in Oracle.
       - name: "Run run-operation get_query_results_as_dict --args '{query: select 1}' in ${{ inputs.db_name }} container"
         if: ${{ (success() || failure()) && inputs.db_name != 'oracle' }}
         run: |
@@ -576,7 +576,7 @@ jobs:
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-41-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation timestamp_format -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
   
-  # trigger the destruction of environments if set as variable during call, after all tests are done.
+  # trigger the destruction of environments if set as a variable during call, after all tests are done.
   trigger-destroy-environments:
     if: ${{ always() && inputs.auto-destroy != 'false' }} 
     needs: [ dbt-tests, dbt-macro-tests ]
@@ -658,7 +658,7 @@ jobs:
     - name: Terraform Destroy
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
 
-    # Create Token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
+    # Create a token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
     - name: Get Access Token
       if: ${{ inputs.db_name == 'fabric' }}
       id: get_token
