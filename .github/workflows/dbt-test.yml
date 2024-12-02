@@ -41,7 +41,9 @@ on:
         required: true
       REDSHIFT_DB_PASSWORD:
         required: true
-      SNOWFLAKE_PASSWORD:
+      SNOWFLAKE_PRIVATE_KEY:
+        required: true
+      SNOWFLAKE_PRIVATE_KEY_dbt:
         required: true
       EXASOL_DB_PASSWORD:
         required: true
