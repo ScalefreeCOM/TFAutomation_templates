@@ -628,12 +628,6 @@ jobs:
           cd $GITHUB_WORKSPACE/db-environments/redshift/ && cat << EOF > terraform.tfvars
           redshift_password="${{ secrets.REDSHIFT_DB_PASSWORD }}"
           EOF
-    - name: Create terraform.tfvars for snowflake
-      if: ${{ inputs.db_name == 'snowflake' }}
-      run: |
-          cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > terraform.tfvars
-          snowflakePassword="${{ secrets.SNOWFLAKE_PASSWORD }}"
-          EOF
     - name: Create terraform.tfvars for databricks
       if: ${{ inputs.db_name == 'databricks' }}
       run: |
