@@ -209,7 +209,7 @@ jobs:
       if: ${{ inputs.db_name == 'postgres'}}
       id: tf_output_postgres
       run: |
-        echo "postgres_db_password=$(terraform output -json | jq -r .oracle_db_password.value)" >> $GITHUB_OUTPUT
+        echo "postgres_db_password=$(terraform output -json | jq -r .postgres_db_password.value)" >> $GITHUB_OUTPUT
     
     - name: Terraform Output redshift 
       if: ${{ inputs.db_name == 'redshift'}}
