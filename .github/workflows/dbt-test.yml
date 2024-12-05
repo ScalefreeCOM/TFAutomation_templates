@@ -37,17 +37,11 @@ on:
         required: true
       SYNAPSE_DB_PASSWORD:
         required: true
-      POSTGRES_DB_PASSWORD:
-        required: true
-      REDSHIFT_DB_PASSWORD:
-        required: true
       SNOWFLAKE_PRIVATE_KEY:
         required: true
       SNOWFLAKE_PRIVATE_KEY_dbt:
         required: true
       EXASOL_DB_PASSWORD:
-        required: true
-      ORACLE_DB_PASSWORD:
         required: true
       DATABRICKS_HOST:
         required: true
@@ -62,11 +56,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs: 
       # Output of IP address from Exasol EC2 instance
-      public_ip: ${{ steps.tf_output.outputs.public_ip }}
+      public_ip: ${{ steps.tf_output_exasol.outputs.public_ip }}
 
       # Output of Cluster- and Workspace-ID for Databricks. 
       databricks_cluster_id: ${{ steps.tf_output_databricks.outputs.databricks_cluster_id }}
       databricks_workspace_id: ${{ steps.tf_output_databricks.outputs.databricks_workspace_id }}
+
+      #Output of database passwords
+      oracle_db_password: ${{ steps.tf_output_oracle.outputs.oracle_db_password }}
+      postgres_db_password: ${{ steps.tf_output_postgres.outputs.postgres_db_password }}
+      redshift_db_password: ${{ steps.tf_output_redshift.outputs.redshift_db_password }}
+
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -142,31 +142,13 @@ jobs:
               -H "Content-Type: application/json" \
               -H "Content-Length: 0" \
               "https://management.azure.com/subscriptions/${{ secrets.TFAUTOMATION_AZURE_SUBSCRIPTION_ID }}/resourceGroups/dv4dbt_db_environment/providers/Microsoft.Fabric/capacities/dv4dbtcicd/resume?api-version=2023-11-01"
-            # Wait for 15 seconds to allow the capacity to start.
-            echo "Waiting 15 seconds for capacity to start..."
-            sleep 15
+            # Wait for 25 seconds to allow the capacity to start.
+            echo "Waiting 25 seconds for capacity to start..."
+            sleep 25
           else
             echo "Capacity is already running with $ACTIVE_COUNT active runs."
           fi
           
-    - name: Create terraform.tfvars for postgres
-      if: ${{ inputs.db_name == 'postgres' }}
-      run: |
-          cd $GITHUB_WORKSPACE/db-environments/postgres/ && cat << EOF > terraform.tfvars
-          rds_postgres_password="${{ secrets.POSTGRES_DB_PASSWORD }}"
-          EOF
-    - name: Create terraform.tfvars for oracle
-      if: ${{ inputs.db_name == 'oracle' }}
-      run: |
-          cd $GITHUB_WORKSPACE/db-environments/oracle/ && cat << EOF > terraform.tfvars
-          rds_oracle_password="${{ secrets.ORACLE_DB_PASSWORD }}"
-          EOF
-    - name: Create terraform.tfvars for redshift
-      if: ${{ inputs.db_name == 'redshift' }}
-      run: |
-          cd $GITHUB_WORKSPACE/db-environments/redshift/ && cat << EOF > terraform.tfvars
-          redshift_password="${{ secrets.REDSHIFT_DB_PASSWORD }}"
-          EOF
     - name: Create terraform.tfvars for snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
@@ -202,20 +184,38 @@ jobs:
         aws sqs send-message --queue-url ${{ secrets.FIFO_SQS_QUEUE_URL }} --message-body "${{ github.run_id }}/${{ inputs.db_name }}" --message-group-id ${{ inputs.db_name }} --message-deduplication-id ${{ inputs.db_name }}
 
     # Giving the IP Adress of exasol EC2 instance as output from Terraform to GitHub. 
-    - name: Terraform Output
+    - name: Terraform Output exasol
       if: ${{ inputs.db_name == 'exasol' }}
-      id: tf_output
+      id: tf_output_exasol
       run: |
         echo "public_ip=$(terraform output -json | jq -r .publicIP.value)" >> $GITHUB_OUTPUT
         sleep 30
 
     # Giving the Cluster- and Workspace-ID of Databricks environment from Terraform to GitHub.
-    - name: Terraform Output
+    - name: Terraform Output databricks
       if: ${{ inputs.db_name == 'databricks' }}
       id: tf_output_databricks
       run: |
         echo "databricks_cluster_id=$(terraform output -json | jq -r .databricks_cluster_id.value)" >> $GITHUB_OUTPUT
         echo "databricks_workspace_id=$(terraform output -json | jq -r .databricks_workspace_id.value)" >> $GITHUB_OUTPUT
+
+    - name: Terraform Output oracle
+      if: ${{ inputs.db_name == 'oracle'}}
+      id: tf_output_oracle
+      run: |
+        echo "oracle_db_password=$(terraform output -json | jq -r .oracle_db_password.value)" >> $GITHUB_OUTPUT
+
+    - name: Terraform Output postgres
+      if: ${{ inputs.db_name == 'postgres'}}
+      id: tf_output_postgres
+      run: |
+        echo "postgres_db_password=$(terraform output -json | jq -r .oracle_db_password.value)" >> $GITHUB_OUTPUT
+    
+    - name: Terraform Output redshift 
+      if: ${{ inputs.db_name == 'redshift'}}
+      id: tf_output_redshift
+      run: |
+        echo "redshift_db_password=$(terraform output -json | jq -r .redshift_db_password.value)" >> $GITHUB_OUTPUT
 
     # Setup and starting of Exasol environment.
     - name: Setup environment and start Server
@@ -274,7 +274,7 @@ jobs:
                   type: redshift
                   host: ${{ vars.REDSHIFT_DB_HOST_START }}${{ github.run_id }}${{ vars.REDSHIFT_DB_HOST_END }}
                   user: ${{ vars.REDSHIFT_DB_USERNAME }}
-                  password: ${{ secrets.REDSHIFT_DB_PASSWORD }}
+                  password: ${{ needs.db-environments.outputs.redshift_db_password }}
                   dbname: ${{ vars.REDSHIFT_DB }}${{ github.run_id }}
                   schema: ${{ vars.REDSHIFT_DB_SCHEMA }}${{ github.run_id }}
                   port: ${{ vars.REDSHIFT_PORT }}
@@ -286,7 +286,7 @@ jobs:
                   type: postgres
                   host: ${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}}
                   user: ${{ vars.POSTGRES_DB_USERNAME }}
-                  password: '${{ secrets.POSTGRES_DB_PASSWORD }}'
+                  password: '${{ needs.db-environments.outputs.postgres_db_password }}'
                   port: ${{ vars.POSTGRES_PORT }}
                   dbname: ${{ vars.POSTGRES_DB }}${{ github.run_id }}
                   schema: ${{ vars.POSTGRES_DB_SCHEMA }}
@@ -351,7 +351,7 @@ jobs:
                 user_pw:
                   type: oracle
                   user: ${{ vars.ORACLE_DB_USER }}
-                  pass: ${{ secrets.ORACLE_DB_PASSWORD }}
+                  pass: ${{ needs.db-environments.outputs.oracle_db_password }}
                   protocol: ${{ vars.ORACLE_DB_PROTOCOL }}
                   host: ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }}
                   port: ${{ vars.ORACLE_DB_PORT }}
@@ -622,18 +622,6 @@ jobs:
           sql_administrator_login_password="${{ secrets.SYNAPSE_DB_PASSWORD }}"
           EOF
 
-    - name: Create terraform.tfvars for redshift
-      if: ${{ inputs.db_name == 'redshift' }}
-      run: |
-          cd $GITHUB_WORKSPACE/db-environments/redshift/ && cat << EOF > terraform.tfvars
-          redshift_password="${{ secrets.REDSHIFT_DB_PASSWORD }}"
-          EOF
-    - name: Create terraform.tfvars for snowflake
-      if: ${{ inputs.db_name == 'snowflake' }}
-      run: |
-          cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > terraform.tfvars
-          snowflakePassword="${{ secrets.SNOWFLAKE_PASSWORD }}"
-          EOF
     - name: Create terraform.tfvars for databricks
       if: ${{ inputs.db_name == 'databricks' }}
       run: |
