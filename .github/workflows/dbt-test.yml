@@ -22,6 +22,12 @@ on:
         value: ${{ jobs.collect-job-results.outputs.dbt-test-result }}
       dbt-macro-test-result: 
         value: ${{ jobs.collect-job-results.outputs.dbt-macro-test-result }}
+      oracle-db-password:
+        value: ${{ jobs.db-environments.outputs.oracle_db_password }}
+      postgres-db-password:
+        value: ${{ jobs.db-environments.outputs.postgres_db_password }}
+      redshift-db-password:
+        value: ${{ jobs.db-environments.outputs.redshift_db_password }}
     secrets:
       TFAUTOMATION_AWS_ACCESS_KEY:
         required: true
