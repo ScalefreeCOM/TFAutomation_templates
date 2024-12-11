@@ -367,7 +367,7 @@ jobs:
                   threads: ${{ vars.ORACLE_DB_THREADS }}
             EOF
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with: 
           name: my-files
           path: |
@@ -387,7 +387,7 @@ jobs:
 
     # Downloading generated artifacts like profiles.yml
     - name: Download Artifacts 
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with: 
         name: my-files
         path: db-environments/generated_files
@@ -435,7 +435,7 @@ jobs:
 
       # Downloading generated artifacts like profile.yml
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with: 
           name: my-files
           path: db-environments/generated_files
