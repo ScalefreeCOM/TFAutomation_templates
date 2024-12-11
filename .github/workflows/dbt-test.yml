@@ -627,7 +627,6 @@ jobs:
           cd $GITHUB_WORKSPACE/db-environments/synapse/ && cat << EOF > terraform.tfvars
           sql_administrator_login_password="${{ secrets.SYNAPSE_DB_PASSWORD }}"
           EOF
-
     - name: Create terraform.tfvars for databricks
       if: ${{ inputs.db_name == 'databricks' }}
       run: |
