@@ -155,7 +155,7 @@ jobs:
             echo "Capacity is already running with $ACTIVE_COUNT active runs."
           fi
           
-    - name: Create terraform.tfvars for snowflake
+    - name: Create key file for snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
           cd $GITHUB_WORKSPACE/db-environments/generated_files/ && cat << EOF > snowflake_authenticator_key.pem
@@ -634,10 +634,10 @@ jobs:
           token="${{ secrets.DATABRICKS_TOKEN }}"
           host="${{ secrets.DATABRICKS_HOST}}"
           EOF
-    - name: Create terraform.tfvars for snowflake
+    - name: Create key file for snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
-          cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > snowflake_authenticator_key.pem
+          cd $GITHUB_WORKSPACE/db-environments/generated_files/ && cat << EOF > snowflake_authenticator_key.pem
           ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           EOF
 
