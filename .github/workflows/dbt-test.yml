@@ -373,7 +373,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with: 
-          name: my-files
+          name: my-files-${{ inputs.db_name }}
           path: |
             db-environments/generated_files/dv4dbt-sa-keys.json
             db-environments/generated_files/profiles.yml
@@ -394,7 +394,7 @@ jobs:
     - name: Download Artifacts 
       uses: actions/download-artifact@v4
       with: 
-        name: my-files
+        name: my-files-${{ inputs.db_name }}
         path: db-environments/generated_files
 
     # Waiting for Exasol to start the server.
@@ -442,7 +442,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with: 
-          name: my-files
+          name: my-files-${{ inputs.db_name }}
           path: db-environments/generated_files
 
       # Waiting for the Exasol server to start.
