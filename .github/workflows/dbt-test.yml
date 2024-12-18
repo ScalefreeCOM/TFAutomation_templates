@@ -14,6 +14,10 @@ on:
       dv4dbt-revision: # Name of the branch in datavault4dbt repository  that should be tested
         required: true
         type: string
+      dbt-test:
+        required: true
+        description: 'Skip dbt-test?'
+        type: boolean
       macro-tests: # Input to determine if macro tests should be executed or not
         required: true
         type: boolean
@@ -155,7 +159,7 @@ jobs:
             echo "Capacity is already running with $ACTIVE_COUNT active runs."
           fi
           
-    - name: Create terraform.tfvars for snowflake
+    - name: Create key file for snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
           cd $GITHUB_WORKSPACE/db-environments/generated_files/ && cat << EOF > snowflake_authenticator_key.pem
@@ -228,7 +232,7 @@ jobs:
       if: ${{ inputs.db_name == 'exasol' }}
       uses: appleboy/ssh-action@v1.0.3
       with:
-          host: ${{ steps.tf_output.outputs.PUBLIC_IP }}
+          host: ${{ steps.tf_output_exasol.outputs.PUBLIC_IP }}
           username: ${{ secrets.SSH_USER_EXASOL }}
           key: ${{ secrets.SSH_PRIVATE_KEY_EXASOL }}
           script: |
@@ -379,7 +383,8 @@ jobs:
     needs: generate-files
     runs-on: ubuntu-latest
     # if success or failure to always execute except in the case of an abortion.
-    if: success() || failure()
+    if: ${{ (success() || failure()) && inputs.dbt-tests }}
+
 
     steps:
     - name: Checkout
@@ -634,10 +639,10 @@ jobs:
           token="${{ secrets.DATABRICKS_TOKEN }}"
           host="${{ secrets.DATABRICKS_HOST}}"
           EOF
-    - name: Create terraform.tfvars for snowflake
+    - name: Create key file for snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
-          cd $GITHUB_WORKSPACE/db-environments/snowflake/ && cat << EOF > snowflake_authenticator_key.pem
+          cd $GITHUB_WORKSPACE/db-environments/generated_files/ && cat << EOF > snowflake_authenticator_key.pem
           ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           EOF
 
@@ -706,5 +711,4 @@ jobs:
       run: |
         echo "dbt-test-result=${{ needs.dbt-tests.result }}" >> $GITHUB_OUTPUT
         echo "dbt-macro-test-result=${{ needs.dbt-macro-tests.result }}" >> $GITHUB_OUTPUT
-
 
