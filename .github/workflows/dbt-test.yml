@@ -371,9 +371,9 @@ jobs:
                   threads: ${{ vars.ORACLE_DB_THREADS }}
             EOF
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with: 
-          name: my-files
+          name: my-files-${{ inputs.db_name }}
           path: |
             db-environments/generated_files/dv4dbt-sa-keys.json
             db-environments/generated_files/profiles.yml
@@ -383,7 +383,7 @@ jobs:
     needs: generate-files
     runs-on: ubuntu-latest
     # if success or failure to always execute except in the case of an abortion.
-    if: ${{ (success() || failure()) && inputs.dbt-tests }}
+    if: ${{ (success() || failure()) && inputs.dbt-test }}
 
 
     steps:
@@ -392,9 +392,9 @@ jobs:
 
     # Downloading generated artifacts like profiles.yml
     - name: Download Artifacts 
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with: 
-        name: my-files
+        name: my-files-${{ inputs.db_name }}
         path: db-environments/generated_files
 
     # Waiting for Exasol to start the server.
@@ -440,9 +440,9 @@ jobs:
 
       # Downloading generated artifacts like profile.yml
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with: 
-          name: my-files
+          name: my-files-${{ inputs.db_name }}
           path: db-environments/generated_files
 
       # Waiting for the Exasol server to start.
