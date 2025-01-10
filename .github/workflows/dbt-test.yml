@@ -398,7 +398,7 @@ jobs:
         path: db-environments/generated_files
 
     # Waiting for Exasol to start the server.
-    - name: Wait 60s
+    - name: Wait 60s (Exasol only)
       if: ${{ inputs.db_name == 'exasol' }}
       run: sleep 60
 
@@ -410,10 +410,10 @@ jobs:
     - name: Fabric warm up SQL Pool
       if: ${{ inputs.db_name == 'fabric'}}
       run: |
-        docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt seed --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} 
+        docker run --name dv4dbt-${{ inputs.db_name }}-warm-up --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt seed --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} 
     
     # Ensuring Fabric SQL pool is warmed up
-    - name: Wait 42s
+    - name: Wait 42s (Fabric only)
       if: ${{ inputs.db_name == 'fabric' }}
       run: sleep 42
     
