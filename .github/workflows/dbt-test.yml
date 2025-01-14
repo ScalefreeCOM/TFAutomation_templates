@@ -411,13 +411,14 @@ jobs:
   
     # Waking up the fabric database
     - name: Fabric warm up SQL Pool
-      if: ${{ inputs.db_name == 'fabric'}}
+      if: ${{ inputs.db_name == 'fabric' && (success() || failure())}}
+      continue-on-error: true
       run: |
         docker run --name dv4dbt-${{ inputs.db_name }}-warm-up --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt seed --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} 
     
     # Ensuring Fabric SQL pool is warmed up
     - name: Wait 42s (Fabric only)
-      if: ${{ inputs.db_name == 'fabric' }}
+      if: ${{ inputs.db_name == 'fabric' && (success() || failure())}}
       run: sleep 42
     
     # Running all Tests with different Variables.
