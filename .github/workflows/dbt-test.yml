@@ -11,10 +11,13 @@ on:
         required: true
         default: ''
         type: string
-      dv4dbt-revision: # Name of the branch in datavault4dbt repository  that should be tested
+      dv4dbt-revision: # Name of the branch in datavault4dbt repository that should be tested
         required: true
         type: string
-      dbt-test:
+      dv4dbt-test-revision: # Name of the branch in datavault4dbt repository that should be tested
+        required: true
+        type: string
+      dbt-test: # Input to determine if dbt tests should be executed or not
         required: true
         description: 'Skip dbt-test?'
         type: boolean
@@ -399,13 +402,25 @@ jobs:
         path: db-environments/generated_files
 
     # Waiting for Exasol to start the server.
-    - name: Wait 60s
+    - name: Wait 60s (Exasol only)
       if: ${{ inputs.db_name == 'exasol' }}
       run: sleep 60
 
     # Building the docker Image from the docker Files for each database.
     - name: Build ${{ inputs.db_name }} image
-      run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+      run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg DBT_TEST_REVISION=${{ inputs.dv4dbt-test-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+  
+    # Waking up the fabric database
+    - name: Fabric warm up SQL Pool
+      if: ${{ inputs.db_name == 'fabric' && (success() || failure())}}
+      continue-on-error: true
+      run: |
+        docker run --name dv4dbt-${{ inputs.db_name }}-warm-up --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt seed --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} 
+    
+    # Ensuring Fabric SQL pool is warmed up
+    - name: Wait 42s (Fabric only)
+      if: ${{ inputs.db_name == 'fabric' && (success() || failure())}}
+      run: sleep 42
     
     # Running all Tests with different Variables.
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to True
@@ -453,7 +468,7 @@ jobs:
 
       # Building docker image from dockerfile for each database.
       - name: Build ${{ inputs.db_name }} image
-        run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+        run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg DBT_TEST_REVISION=${{ inputs.dv4dbt-test-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
       
       # Run hardcoded Macro tests.
       - name: Run run-operation is_list --args '{obj}' in ${{ inputs.db_name }} container
