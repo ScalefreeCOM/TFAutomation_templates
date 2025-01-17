@@ -270,6 +270,7 @@ jobs:
                   warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
                   schema: ${{ vars.SNOWFLAKE_SCHEMA }}${{ github.run_id }}
                   threads: ${{ vars.SNOWFLAKE_THREADS }}
+                  query_tag: costtracking
             bigquery:      
               target: keyfile
               outputs:
