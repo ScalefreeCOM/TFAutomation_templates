@@ -389,7 +389,7 @@ jobs:
     needs: generate-files
     runs-on: ubuntu-latest
     # if success or failure to always execute except in the case of an abortion.
-    if: ${{ (success() || failure()) && inputs.tech-test == 'yes' }}
+    if: ${{ (success() || failure()) && inputs.tech-tests == 'yes' }}
 
 
     steps:
@@ -399,7 +399,7 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-        
+
     - name: install python packages
       run: |
         python -m pip install --upgrade pip
@@ -474,7 +474,7 @@ jobs:
     needs: generate-files
     runs-on: ubuntu-latest
     # if success or failure to always execute except in the case of an abortion.
-    if: ${{ (success() || failure()) && inputs.dbt-test== 'yes' }}
+    if: ${{ (success() || failure()) && inputs.dbt-test == 'yes' }}
 
 
     steps:
