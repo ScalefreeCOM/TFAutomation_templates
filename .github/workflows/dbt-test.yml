@@ -695,7 +695,7 @@ jobs:
   # trigger the destruction of environments if set as a variable during call, after all tests are done.
   trigger-destroy-environments:
     if: ${{ always() && inputs.auto-destroy != 'false' }} 
-    needs: [ dbt-tests, dbt-macro-tests ]
+    needs: [ dbt-tests, dbt-macro-tests, tech-tests ]
 
   # Same setup jobs as in the setup of the environments.
     defaults:
@@ -799,7 +799,7 @@ jobs:
     # Job to send the results of tests for better monitoring.
   collect-job-results:
     if: always()
-    needs: [ dbt-tests, dbt-macro-tests ]
+    needs: [ dbt-tests, dbt-macro-tests, tech-tests ]
 
     runs-on: ubuntu-latest
     outputs: # defining outputs
