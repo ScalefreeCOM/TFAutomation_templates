@@ -49,6 +49,8 @@ on:
         required: true
       TFAUTOMATION_AZURE_SUBSCRIPTION_ID:
         required: true
+      AWS_OIDC_ROLE:
+        required: true
       DV4DBT_SA_KEYS:
         required: true
       SYNAPSE_DB_PASSWORD:
@@ -88,12 +90,11 @@ jobs:
       uses: actions/checkout@v3
 
     # AWS Login
-    - name: Configure AWS Credentials Action For GitHub Actions
-      uses: aws-actions/configure-aws-credentials@v1-node16
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id:  ${{ secrets.TFAUTOMATION_AWS_ACCESS_KEY }}
-        aws-secret-access-key:  ${{ secrets.TFAUTOMATION_AWS_SECRET_ACCESS_KEY }}
         aws-region: eu-west-1
+        role-to-assume: ${{ secrets.AWS_OIDC_ROLE }}
 
     # Microsoft Azure Login
     - name: 'Az CLI login'
@@ -493,7 +494,7 @@ jobs:
         run: docker run --name dv4dbt-macro-test-07-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation replace_standard --args '{input_variable, global_variable, default_value}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: Run run-operation process_columns_to_select in ${{ inputs.db_name }} container
         if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-08-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation process_columns_to_select -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+        run: docker run --name dv4dbt-macro-test-08-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation process_columns_to_select --args '{columns_list:[],exclude_columns_list:[]}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: Run run-operation extract_column_names in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-09-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation extract_column_names -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
@@ -623,12 +624,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Configure AWS Credentials Action For GitHub Actions
-      uses: aws-actions/configure-aws-credentials@v1-node16
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id:  ${{ secrets.TFAUTOMATION_AWS_ACCESS_KEY }}
-        aws-secret-access-key:  ${{ secrets.TFAUTOMATION_AWS_SECRET_ACCESS_KEY }}
         aws-region: eu-west-1
+        role-to-assume: ${{ secrets.AWS_OIDC_ROLE }}
 
     - name: 'Az CLI login'
       if: ${{ inputs.db_name == 'synapse' || inputs.db_name == 'fabric'}}

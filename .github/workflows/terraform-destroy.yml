@@ -24,6 +24,8 @@ on:
          required: true
        TFAUTOMATION_AWS_SECRET_ACCESS_KEY:
          required: true
+       AWS_OIDC_ROLE:
+         required: true
          
         
 jobs:
@@ -36,11 +38,10 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v3
 
-      - name: Configure AWS Credentials Action For GitHub Actions
-        uses: aws-actions/configure-aws-credentials@v1-node16
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.TFAUTOMATION_AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.TFAUTOMATION_AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE }}
           aws-region: ${{ inputs.region }}
 
       - name: 'Az CLI login'
