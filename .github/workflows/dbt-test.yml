@@ -195,7 +195,7 @@ jobs:
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
 
     - name: Import Febric Schema
-      if: ${{ inputs.db_name == 'fabric' }}
+      if: ${{ inputs.db_name == 'fabric' && (success() || failure())}}
       run: |
         echo "SCHEMA_ID=$(terraform output -raw schemaID)" >> $GITHUB_ENV
         terraform import azuresql_schema.schema <id>
