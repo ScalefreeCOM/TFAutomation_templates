@@ -495,7 +495,7 @@ jobs:
       - name: Run run-operation process_columns_to_select in ${{ inputs.db_name }} container
         if: success() || failure()
         run: |
-           docker run --name dv4dbt-macro-test-08-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation process_columns_to_select --args '{\"columns_list\": [], \"exclude_columns_list\": []}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+           docker run --name dv4dbt-macro-test-08-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation process_columns_to_select --args '{"columns_list": [], "exclude_columns_list": []}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: Run run-operation extract_column_names in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-09-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation extract_column_names -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
