@@ -194,6 +194,12 @@ jobs:
     - name: Terraform Apply
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
 
+    - name: Import Febric Schema
+      if: ${{ inputs.db_name == 'fabric' }}
+      run: |
+        echo "SCHEMA_ID=$(terraform output -raw schemaID)" >> $GITHUB_ENV
+        terraform import azuresql_schema.schema <id>
+
     # Store Run_id in FIFO SQS when the environment should not be destroyed, to shut down the environment automatically at the End of the day.
     - name: Send message to FIFO SQS
       if: ${{ inputs.auto-destroy == 'false' }}
