@@ -27,6 +27,9 @@ on:
       tech-tests:
         required: true
         type: string
+      dbt_variables: # Input to determine the dbt variables for each Database
+        required: true
+        type: string
     outputs: #Outputs for test results for PR comment.
       dbt-test-result: 
         value: ${{ jobs.collect-job-results.outputs.dbt-test-result }}
@@ -513,23 +516,24 @@ jobs:
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to True
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.set_casing: "lowercase", datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
+        docker run --name dv4dbt-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{${{inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to True
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.set_casing: "lowercase", datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
+        docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True}'
 
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to False
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{datavault4dbt.set_casing: "lowercase", datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+        docker run --name dv4dbt-v2-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} -f --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
     
     # For Fabric the schema needs to be empty after the last test. In that case, we use an extra variable to delete every object in the schema after the tests.
+    # Also the Databricks schema is not managed in terraform so it will be deleted through dbt with an extra variable for databricks.
     # DBT tests checking if it is a fabric environment as well. 
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to False and empty schema
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_EMPTY_FABRIC_SCHEMA_ON_RUN_END=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{datavault4dbt.set_casing: "lowercase", datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
+        docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_EMPTY_FABRIC_SCHEMA_ON_RUN_END=1 -e DBT_DROP_DATABRICKS_SCHEMA_ON_RUN_END=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False}'
 
 
   dbt-macro-tests:
@@ -578,7 +582,8 @@ jobs:
         run: docker run --name dv4dbt-macro-test-07-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation replace_standard --args '{input_variable, global_variable, default_value}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: Run run-operation process_columns_to_select in ${{ inputs.db_name }} container
         if: success() || failure()
-        run: docker run --name dv4dbt-macro-test-08-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation process_columns_to_select -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+        run: |
+           docker run --name dv4dbt-macro-test-08-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation process_columns_to_select --args '{"columns_list": [], "exclude_columns_list": []}' -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       - name: Run run-operation extract_column_names in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-09-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation extract_column_names -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
@@ -813,4 +818,3 @@ jobs:
       run: |
         echo "dbt-test-result=${{ needs.dbt-tests.result }}" >> $GITHUB_OUTPUT
         echo "dbt-macro-test-result=${{ needs.dbt-macro-tests.result }}" >> $GITHUB_OUTPUT
-
