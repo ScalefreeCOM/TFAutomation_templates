@@ -413,6 +413,9 @@ jobs:
         path: datavault4dbt-automatic-tests
         ref: '${{ inputs.test_branch }}'
 
+    - name: Checkout CICD Repo
+      uses: actions/checkout@v4
+
     - name: (debug) List Files
       run: ls -laR | grep -v "./.git"
 
