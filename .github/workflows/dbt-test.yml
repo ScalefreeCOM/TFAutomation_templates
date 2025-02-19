@@ -396,11 +396,25 @@ jobs:
 
 
     steps:
-    - name: Checkout #Checkout from ci/cd repo. Is Testing repo also needed for schema and hash files?
-      uses: actions/checkout@v3
+    - name: Generate token
+      id: generate_token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ secrets.WORKFLOW_APP_ID }}
+        private-key: ${{ secrets.WORKFLOW_APP_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+        repositories: "datavault4dbt-automatic-tests"
+
+    - name: Checkout datavault4dbt-automatic-tests  # Access repo to retrieve the config file
+      uses: actions/checkout@v4
+      with:
+        repository: ScalefreeCOM/datavault4dbt-automatic-tests  
+        token: ${{ steps.generate_token.outputs.token }}
+        path: datavault4dbt-automatic-tests
+        ref: '${{ inputs.test_branch }}'
 
     - name: (debug) List Files
-      run: ls -laR
+      run: ls -laR | grep -v "./.git"
 
     - uses: actions/setup-python@v4
       with:
