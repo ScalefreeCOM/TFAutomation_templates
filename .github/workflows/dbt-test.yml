@@ -396,8 +396,11 @@ jobs:
 
 
     steps:
-    - name: Checkout
+    - name: Checkout #Checkout from ci/cd repo. Is Testing repo also needed for schema and hash files?
       uses: actions/checkout@v3
+
+    - name: (debug) List Files
+      run: ls -la
 
     - uses: actions/setup-python@v4
       with:
@@ -456,7 +459,7 @@ jobs:
     - name: Compare Snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
-        python $GITHUB_WORKSPACE/db-environments/techtest/testSnowflake.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -a ${{ vars.SNOWFLAKE_ACCOUNT }} -w ${{ vars.SNOWFLAKE_WAREHOUSE }} -u ${{ vars.SNOWFLAKE_USERNAME }} -key ${{ secrets.SNOWFLAKE_PRIVATE_KEY_dbt }} -db ${{ vars.SNOWFLAKE_DB }} -sch ${{ vars.SNOWFLAKE_SCHEMA }} -rol ${{ vars.SNOWFLAKE_ROLE }}
+        python $GITHUB_WORKSPACE/db-environments/techtest/testSnowflake.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest/schema' -a ${{ vars.SNOWFLAKE_ACCOUNT }} -w ${{ vars.SNOWFLAKE_WAREHOUSE }} -u ${{ vars.SNOWFLAKE_USERNAME }} -key ${{ secrets.SNOWFLAKE_PRIVATE_KEY }} -db ${{ vars.SNOWFLAKE_DB }} -sch ${{ vars.SNOWFLAKE_SCHEMA }} -rol ${{ vars.SNOWFLAKE_ROLE }}
   
     - name: Compare Databricks
       if: ${{ inputs.db_name == 'databricks' }}
