@@ -451,6 +451,7 @@ jobs:
     - name: Compare Bigquery
       if: ${{ inputs.db_name == 'bigquery' }}
       run: |
+        sleep 240
         python $GITHUB_WORKSPACE/db-environments/techtest/testBigQuery.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest' -p ${{ vars.BIGQUERY_PROJECT }} -d ${{ vars.BIGQUERY_DATASET }}${{ github.run_id }} -k $GITHUB_WORKSPACE/db-environments/generated_files/dv4dbt-sa-keys.json
     
     - name: Compare Exasol 
