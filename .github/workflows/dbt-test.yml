@@ -451,7 +451,7 @@ jobs:
     - name: Compare Bigquery
       if: ${{ inputs.db_name == 'bigquery' }}
       run: |
-        python db-environments/techtest/testBigQuery.py -i "$GITHUB_WORKSPACE/datavault4dbt-automatic-tests/seeds" -s "$GITHUB_WORKSPACE/datavault4dbt-automatic-tests/db-environments/techtest" -p scalefree-edw-test -d dbt_test_datavault4dbt13921443363 -k "$GITHUB_WORKSPACE/db-environments/generated_files/dv4dbt-sa-keys.json"
+        python $GITHUB_WORKSPACE/db-environments/techtest/testBigQuery.py -i '$GITHUB_WORKSPACE/seeds' -s '$GITHUB_WORKSPACE/db-environments/techtest' -p ${{ vars.BIGQUERY_PROJECT }} -d ${{ vars.BIGQUERY_DATASET }}${{ github.run_id }} -k $GITHUB_WORKSPACE/db-environments/generated_files/dv4dbt-sa-keys.json
     
     - name: Compare Exasol 
       if: ${{ inputs.db_name == 'exasol' }}
