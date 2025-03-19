@@ -420,11 +420,6 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: install python packages
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r ./datavault4dbt-automatic-tests/db-environments/techtest/requirements.txt
-
     # Downloading generated artifacts like profiles.yml
     - name: Download Artifacts 
       uses: actions/download-artifact@v4
@@ -444,6 +439,11 @@ jobs:
     - name: Run ${{ inputs.db_name }} container dbt seed
       if: success() || failure()
       run: docker run --name dv4dbt-seed-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt seed --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+
+    - name: install python packages
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ./datavault4dbt-automatic-tests/db-environments/techtest/requirements.txt
 
     - name: (debug) List Files
       run: ls -laR | grep -v "./.git"
