@@ -467,7 +467,6 @@ jobs:
       if: ${{ inputs.db_name == 'redshift' }}
       run: |
         python ./datavault4dbt-automatic-tests/db-environments/techtest/testRedshift.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ vars.REDSHIFT_HOST }} -p ${{ vars.REDSHIFT_PORT }} -u ${{ vars.REDSHIFT_USERNAME }} -psw "${{ secrets.REDSHIFT_PASSWORD }}" -db ${{ vars.REDSHIFT_DB }} -sch ${{ vars.REDSHIFT_SCHEMA }}
-    
     - name: Compare Synapse
       if: ${{ inputs.db_name == 'synapse' }}
       run: |
