@@ -242,7 +242,7 @@ jobs:
       if: ${{ inputs.db_name == 'exasol' }}
       uses: appleboy/ssh-action@v1.0.3
       with:
-          host: ${{ steps.tf_output_exasol.outputs.publicIP }}
+          host: ${{ steps.tf_output_exasol.outputs.PUBLIC_IP }}
           username: ${{ secrets.SSH_USER_EXASOL }}
           key: ${{ secrets.SSH_PRIVATE_KEY_EXASOL }}
           script: |
