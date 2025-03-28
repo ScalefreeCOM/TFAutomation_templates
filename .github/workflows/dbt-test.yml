@@ -208,7 +208,7 @@ jobs:
       if: ${{ inputs.db_name == 'exasol' }}
       id: tf_output_exasol
       run: |
-        echo "public_ip=$(terraform output -json | jq -r .publicIP.value)" >> $GITHUB_OUTPUT
+        echo "public_ip=$(terraform output -json | jq -r .public_ip.value)" >> $GITHUB_OUTPUT
         sleep 30
 
     # Giving the Cluster- and Workspace-ID of Databricks environment from Terraform to GitHub.
@@ -242,7 +242,7 @@ jobs:
       if: ${{ inputs.db_name == 'exasol' }}
       uses: appleboy/ssh-action@v1.0.3
       with:
-          host: ${{ steps.tf_output_exasol.outputs.PUBLIC_IP }}
+          host: ${{ steps.tf_output_exasol.outputs.public_ip }}
           username: ${{ secrets.SSH_USER_EXASOL }}
           key: ${{ secrets.SSH_PRIVATE_KEY_EXASOL }}
           script: |
