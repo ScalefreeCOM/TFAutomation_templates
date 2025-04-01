@@ -208,8 +208,8 @@ jobs:
       if: ${{ inputs.db_name == 'exasol' }}
       id: tf_output_exasol
       run: |
-        echo "public_ip=$(terraform output -json | jq -r .publicIP.value)" >> $GITHUB_OUTPUT
-        sleep 30
+         echo "PUBLIC_IP=$(terraform output -raw publicIP)" >> $GITHUB_ENV
+         sleep 30
 
     # Giving the Cluster- and Workspace-ID of Databricks environment from Terraform to GitHub.
     - name: Terraform Output databricks
@@ -242,7 +242,7 @@ jobs:
       if: ${{ inputs.db_name == 'exasol' }}
       uses: appleboy/ssh-action@v1.0.3
       with:
-          host: ${{ steps.tf_output_exasol.outputs.PUBLIC_IP }}
+          host: ${{ env.PUBLIC_IP }}
           username: ${{ secrets.SSH_USER_EXASOL }}
           key: ${{ secrets.SSH_PRIVATE_KEY_EXASOL }}
           script: |
@@ -455,7 +455,7 @@ jobs:
     
     - name: Compare Exasol
       if: ${{ inputs.db_name == 'exasol' }}
-      run: if [[ -z "${{ needs.db-environments.outputs.public_ip }}" ]]; then echo "Missing Exasol Host"; exit 1; fi; python ./datavault4dbt-automatic-tests/db-environments/techtest/testExasol.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ needs.db-environments.outputs.public_ip }}" -p "${{ vars.EXASOL_PORT }}" -u "${{ vars.EXASOL_DB_USERNAME }}" -psw "${{ secrets.EXASOL_DB_PASSWORD }}" -sch "${{ vars.EXASOL_DB_SCHEMA }}"
+      run: if [[ -z "${{ needs.db-environments.outputs.public_ip }}" ]]; then echo "Missing Exasol Host"; exit 1; fi && python ./datavault4dbt-automatic-tests/db-environments/techtest/testExasol.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ needs.db-environments.outputs.public_ip }}" -p "${{ vars.EXASOL_PORT }}" -u "${{ vars.EXASOL_DB_USERNAME }}" -psw "${{ secrets.EXASOL_DB_PASSWORD }}" -sch "${{ vars.EXASOL_DB_SCHEMA }}"
 
     - name: Compare Postgres
       if: ${{ inputs.db_name == 'postgres' }}
