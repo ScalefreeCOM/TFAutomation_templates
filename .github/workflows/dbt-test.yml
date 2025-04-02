@@ -467,7 +467,8 @@ jobs:
 
     - name: Compare Synapse
       if: ${{ inputs.db_name == 'synapse' }}
-      run: if [[ -z "${{ vars.SYNAPSE_HOST }}" ]]; then echo "Missing Synapse Host"; exit 1; fi; python ./datavault4dbt-automatic-tests/db-environments/techtest/testSynapse.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.SYNAPSE_HOST }}" -u "${{ vars.SYNAPSE_USERNAME }}" -psw "${{ secrets.SYNAPSE_PASSWORD }}" -db "${{ vars.SYNAPSE_DB }}" -sch "${{ vars.SYNAPSE_SCHEMA }}"
+      run: | 
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSynapse.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -h "${{ vars.SYNAPSE_HOST }}" -u "${{ vars.SYNAPSE_USERNAME }}" -psw "${{ secrets.SYNAPSE_PASSWORD }}" -db "${{ vars.SYNAPSE_DB }}" -sch "${{ vars.SYNAPSE_SCHEMA }}"
   
     - name: Compare Snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
