@@ -455,7 +455,7 @@ jobs:
     
     - name: Compare Exasol
       if: ${{ inputs.db_name == 'exasol' }}
-      run: if [[ -z "${{ needs.db-environments.outputs.public_ip }}" ]]; then echo "Missing Exasol Host"; exit 1; fi && python ./datavault4dbt-automatic-tests/db-environments/techtest/testExasol.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ needs.db-environments.outputs.public_ip }}" -p "${{ vars.EXASOL_PORT }}" -u "${{ vars.EXASOL_DB_USERNAME }}" -psw "${{ secrets.EXASOL_DB_PASSWORD }}" -sch "${{ vars.EXASOL_DB_SCHEMA }}"
+      run: if [[ -z "${{ needs.db-environments.outputs.public_ip }}" ]]; then echo "Missing Exasol Host"; exit 1; fi && python ./datavault4dbt-automatic-tests/db-environments/techtest/testExasol.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -h "${{ needs.db-environments.outputs.public_ip }}" -p "${{ vars.EXASOL_PORT }}" -u "${{ vars.EXASOL_DB_USERNAME }}" -psw "${{ secrets.EXASOL_DB_PASSWORD }}" -sch "${{ vars.EXASOL_DB_SCHEMA }}"
 
     - name: Compare Postgres
       if: ${{ inputs.db_name == 'postgres' }}
