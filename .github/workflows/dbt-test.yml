@@ -208,7 +208,7 @@ jobs:
       if: ${{ inputs.db_name == 'exasol' }}
       id: tf_output_exasol
       run: |
-         echo "public_ip=$(terraform output -raw publicIP)" >> $GITHUB_ENV
+         echo "public_ip=$(terraform output -json | jq -r .publicIP.value)" >> $GITHUB_OUTPUT
          sleep 30
 
     # Giving the Cluster- and Workspace-ID of Databricks environment from Terraform to GitHub.
