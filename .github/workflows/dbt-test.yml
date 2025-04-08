@@ -235,7 +235,7 @@ jobs:
       if: ${{ inputs.db_name == 'redshift'}}
       id: tf_output_redshift
       run: |
-        echo "redshift_db_password=$(terraform output -json | jq -r .redshift_db_password.value)" >> $GITHUB_OUTPUT
+        echo "redshift_db_password=$(terraform output -json | jq -r .redshift_db_password.value)" >> "$GITHUB_OUTPUT"
 
     # Setup and starting of Exasol environment.
     - name: Setup environment and start Server
@@ -459,11 +459,11 @@ jobs:
 
     - name: Compare Postgres
       if: ${{ inputs.db_name == 'postgres' }}
-      run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testPostgres.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}}" -p "${{ vars.POSTGRES_PORT }}" -u "${{ vars.POSTGRES_USERNAME }}" -psw "'${{ needs.db-environments.outputs.postgres_db_password }}'" -db "${{ vars.POSTGRES_DB }}" -sch "${{ vars.POSTGRES_SCHEMA }}"
+      run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testPostgres.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}}" -p "${{ vars.POSTGRES_PORT }}" -u "${{ vars.POSTGRES_USERNAME }}" -psw "${{ needs.db-environments.outputs.postgres_db_password }}" -db "${{ vars.POSTGRES_DB }}" -sch "${{ vars.POSTGRES_SCHEMA }}"
 
     - name: Compare Redshift
       if: ${{ inputs.db_name == 'redshift' }}
-      run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testRedshift.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.REDSHIFT_DB_HOST_START }}${{ github.run_id }}${{ vars.REDSHIFT_DB_HOST_END }}" -p "${{ vars.REDSHIFT_PORT }}" -u "${{ vars.REDSHIFT_USERNAME }}" -psw "'${{ needs.db-environments.outputs.redshift_db_password }}'" -db "${{ vars.REDSHIFT_DB }}" -sch "${{ vars.REDSHIFT_SCHEMA }}"
+      run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testRedshift.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.REDSHIFT_DB_HOST_START }}${{ github.run_id }}${{ vars.REDSHIFT_DB_HOST_END }}" -p "${{ vars.REDSHIFT_PORT }}" -u "${{ vars.REDSHIFT_USERNAME }}" -psw "${{ needs.db-environments.outputs.redshift_db_password }}" -db "${{ vars.REDSHIFT_DB }}" -sch "${{ vars.REDSHIFT_SCHEMA }}"
 
     - name: Compare Synapse
       if: ${{ inputs.db_name == 'synapse' }}
