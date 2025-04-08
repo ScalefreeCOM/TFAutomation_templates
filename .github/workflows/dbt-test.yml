@@ -459,7 +459,7 @@ jobs:
 
     - name: Compare Postgres
       if: ${{ inputs.db_name == 'postgres' }}
-      run: if [[ -z "${{ vars.POSTGRES_HOST }}" ]]; then echo "Missing Postgres Host"; exit 1; fi; python ./datavault4dbt-automatic-tests/db-environments/techtest/testPostgres.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.POSTGRES_HOST }}" -p "${{ vars.POSTGRES_PORT }}" -u "${{ vars.POSTGRES_USERNAME }}" -psw "${{ secrets.POSTGRES_PASSWORD }}" -db "${{ vars.POSTGRES_DB }}" -sch "${{ vars.POSTGRES_SCHEMA }}"
+      run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testPostgres.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}}" -p "${{ vars.POSTGRES_PORT }}" -u "${{ vars.POSTGRES_USERNAME }}" -psw "${{ secrets.POSTGRES_PASSWORD }}" -db "${{ vars.POSTGRES_DB }}" -sch "${{ vars.POSTGRES_SCHEMA }}"
 
     - name: Compare Redshift
       if: ${{ inputs.db_name == 'redshift' }}
@@ -468,7 +468,7 @@ jobs:
     - name: Compare Synapse
       if: ${{ inputs.db_name == 'synapse' }}
       run: | 
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSynapse.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -h "${{ vars.SYNAPSE_HOST }}" -u "${{ vars.SYNAPSE_USERNAME }}" -psw "${{ secrets.SYNAPSE_PASSWORD }}" -db "${{ vars.SYNAPSE_DB }}" -sch "${{ vars.SYNAPSE_SCHEMA }}"
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSynapse.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.SYNAPSE_SQL_ENDPOINT }}" -u "${{ vars.SYNAPSE_USERNAME }}" -psw "${{ secrets.SYNAPSE_PASSWORD }}" -db "${{ vars.SYNAPSE_DB }}" -sch "${{ vars.SYNAPSE_SCHEMA }}"
   
     - name: Compare Snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
