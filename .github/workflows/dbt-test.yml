@@ -389,7 +389,7 @@ jobs:
             db-environments/generated_files/profiles.yml
       
   tech-tests:
-    needs: generate-files
+    needs: [generate-files, db-environments]
     runs-on: ubuntu-latest
     # if success or failure to always execute except in the case of an abortion.
     if: ${{ (success() || failure()) && inputs.tech-tests == 'yes' }}
