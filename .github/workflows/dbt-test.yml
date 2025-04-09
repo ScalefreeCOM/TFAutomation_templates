@@ -459,7 +459,7 @@ jobs:
 
     - name: Compare Postgres
       if: ${{ inputs.db_name == 'postgres' }}
-      run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testPostgres.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}}" -p "${{ vars.POSTGRES_PORT }}" -u "${{ vars.POSTGRES_USERNAME }}" -psw "${{ needs.db-environments.outputs.postgres_db_password }}" -db "${{ vars.POSTGRES_DB }}" -sch "${{ vars.POSTGRES_SCHEMA }}"
+      run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testPostgres.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}}" -p "${{ vars.POSTGRES_PORT }}" -u "${{ vars.POSTGRES_DB_USERNAME }}" -psw "${{ needs.db-environments.outputs.postgres_db_password }}" -db "${{ vars.POSTGRES_DB }}${{ github.run_id }}" -sch "${{ vars.POSTGRES_DB_SCHEMA }}"
 
     - name: Compare Redshift
       if: ${{ inputs.db_name == 'redshift' }}
