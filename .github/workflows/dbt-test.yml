@@ -365,6 +365,7 @@ jobs:
                   http_path: sql/protocolv1/o/${{ needs.db-environments.outputs.databricks_workspace_id }}/${{ needs.db-environments.outputs.databricks_cluster_id }}
                   token: ${{ secrets.DATABRICKS_TOKEN }}
                   threads: ${{ vars.DATABICKS_THREADS }}
+                  port: ${{ vars.DATABRICKS_PORT }}
             oracle:
               target: user_pw
               outputs:
