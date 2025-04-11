@@ -326,6 +326,8 @@ jobs:
                   client_id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
                   client_secret: ${{ secrets.AZURE_CLIENT_SECRET}}
                   threads: ${{ vars.SYNAPSE_THREADS }}
+                  username: ${{ vars.SYNAPSE_DB_USERNAME }}
+                  password: ${{ secrets.SYNAPSE_DB_PASSWORD }}
             exasol:
               target: user_pw
               outputs:
@@ -469,7 +471,7 @@ jobs:
     - name: Compare Synapse
       if: ${{ inputs.db_name == 'synapse' }}
       run: | 
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSynapse.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.SYNAPSE_SQL_ENDPOINT }}" -u "${{ vars.SYNAPSE_USERNAME }}" -psw "${{ secrets.SYNAPSE_PASSWORD }}" -db "${{ vars.SYNAPSE_DB }}" -sch "${{ vars.SYNAPSE_SCHEMA }}"
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSynapse.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.SYNAPSE_SQL_ENDPOINT }}" -u "${{ vars.SYNAPSE_DB_USERNAME }}" -psw "${{ secrets.SYNAPSE_DB_PASSWORD }}" -db "${{ vars.SYNAPSE_DB }}${{ github.run_id }}" -sch "${{ vars.SYNAPSE_DB_SCHEMA }}"
   
     - name: Compare Snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
