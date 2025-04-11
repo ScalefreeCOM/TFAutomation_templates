@@ -467,7 +467,14 @@ jobs:
     - name: Compare Redshift
       if: ${{ inputs.db_name == 'redshift' }}
       run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testRedshift.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.REDSHIFT_DB_HOST_START }}${{ github.run_id }}${{ vars.REDSHIFT_DB_HOST_END }}" -p "${{ vars.REDSHIFT_PORT }}" -u "${{ vars.REDSHIFT_DB_USERNAME }}" -psw "${{ needs.db-environments.outputs.redshift_db_password }}" -db "${{ vars.REDSHIFT_DB }}${{ github.run_id }}" -sch "${{ vars.REDSHIFT_DB_SCHEMA }}${{ github.run_id }}"
-
+ 
+    - name: Install ODBC Driver for SQL Server (Synapse)
+      if: ${{ inputs.db_name == 'synapse' }}
+      run: |
+         sudo apt-get update
+         sudo apt-get install -y --allow-unauthenticated msodbcsql17
+         sudo apt-get install -y --allow-unauthenticated unixodbc-dev
+            
     - name: Compare Synapse
       if: ${{ inputs.db_name == 'synapse' }}
       run: | 
