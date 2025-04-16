@@ -473,11 +473,12 @@ jobs:
       run: |
         sudo apt-get update
         curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-        sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
-        echo "deb [arch=amd64] https://packages.microsoft.com/ubuntu/jammy/prod jammy main" | sudo tee /etc/apt/sources.list.d/mssql-release.list
+        sudo install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
+        curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
         sudo apt-get update
         sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17
         sudo apt-get install -y unixodbc-dev
+
 
             
     - name: Compare Synapse
