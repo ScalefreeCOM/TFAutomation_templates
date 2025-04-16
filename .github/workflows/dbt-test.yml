@@ -505,7 +505,7 @@ jobs:
     - name: Compare Oracle
       if: ${{ inputs.db_name == 'oracle' }}
       run: |
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testOracle.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }} -p ${{ vars.ORACLE_DB_PORT }} -s ${{ vars.ORACLE_DB_SERVICE }} -db ${{ vars.ORACLE_DB }} -u ${{ vars.ORACLE_DB_USER }} -psw ${{ needs.db-environments.outputs.oracle_db_password }} -sch ${{ vars.ORACLE_DB_SCHEMA }}
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testOracle.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }} -p ${{ vars.ORACLE_DB_PORT }} -sv ${{ vars.ORACLE_DB_SERVICE }} -db ${{ vars.ORACLE_DB }} -u ${{ vars.ORACLE_DB_USER }} -psw ${{ needs.db-environments.outputs.oracle_db_password }} -sch ${{ vars.ORACLE_DB_SCHEMA }}
   
   dbt-tests:
     needs: generate-files
