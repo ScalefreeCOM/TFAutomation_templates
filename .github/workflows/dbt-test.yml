@@ -471,15 +471,13 @@ jobs:
     - name: Install ODBC Driver for SQL Server (Synapse)
       if: ${{ inputs.db_name == 'synapse' }}
       run: |
-          sudo apt-get update
-          # Add Microsoft repository
-          curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-          sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
-          sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/ubuntu/$(lsb_release -sc)/prod $(lsb_release -sc) main" > /etc/apt/sources.list.d/mssql-release.list'
-          sudo apt-get update
-          # Install the driver
-          sudo apt-get install -y --allow-unauthenticated msodbcsql17
-          sudo apt-get install -y --allow-unauthenticated unixodbc-dev
+        sudo apt-get update
+        curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+        sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
+        sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/ubuntu/$(lsb_release -sc)/prod $(lsb_release -sc) main" > /etc/apt/sources.list.d/mssql-release.list'
+        sudo apt-get update
+        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17
+        sudo apt-get install -y unixodbc-dev
 
             
     - name: Compare Synapse
