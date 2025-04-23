@@ -244,7 +244,7 @@ jobs:
       if: ${{ inputs.db_name == 'exasol' }}
       uses: appleboy/ssh-action@v1.0.3
       with:
-          host: ${{ needs.db-environments.outputs.exasol_server }}
+          host: ${{ steps.db-environments.outputs.exasol_server}}
           username: ${{ secrets.SSH_USER_EXASOL }}
           key: ${{ secrets.SSH_PRIVATE_KEY_EXASOL }}
           script: |
