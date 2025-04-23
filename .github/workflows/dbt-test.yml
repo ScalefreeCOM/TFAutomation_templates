@@ -244,7 +244,7 @@ jobs:
       if: ${{ inputs.db_name == 'exasol' }}
       uses: appleboy/ssh-action@v1.0.3
       with:
-          host: ${{ steps.db-environments.outputs.exasol_server}}
+          host: ${{ steps.tf_output_exasol.outputs.PUBLIC_IP }}}
           username: ${{ secrets.SSH_USER_EXASOL }}
           key: ${{ secrets.SSH_PRIVATE_KEY_EXASOL }}
           script: |
@@ -339,7 +339,7 @@ jobs:
                   dsn: ${{ needs.db-environments.outputs.public_ip}}:${{ vars.EXASOL_PORT }}
                   user: ${{ vars.EXASOL_DB_USERNAME }}
                   password: ${{ secrets.EXASOL_DB_PASSWORD }}
-                  host: ${{needs.db-environments.outputs.exasol_server}}
+                  server: ${{needs.db-environments.outputs.exasol_server}}
                   dbname: ${{ vars.EXASOL_DB }}
                   schema: ${{ vars.EXASOL_DB_SCHEMA }}
                   query_timeout: 60
