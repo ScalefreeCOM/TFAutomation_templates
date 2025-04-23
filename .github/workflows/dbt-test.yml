@@ -78,6 +78,7 @@ jobs:
     outputs: 
       # Output of IP address from Exasol EC2 instance
       public_ip: ${{ steps.tf_output_exasol.outputs.public_ip }}
+      exasol_server: ${{ steps.tf_output_exasol.outputs.exasol_server }}
 
       # Output of Cluster- and Workspace-ID for Databricks. 
       databricks_cluster_id: ${{ steps.tf_output_databricks.outputs.databricks_cluster_id }}
@@ -209,6 +210,7 @@ jobs:
       id: tf_output_exasol
       run: |
          echo "public_ip=$(terraform output -json | jq -r .publicIP.value)" >> $GITHUB_OUTPUT
+         echo "exasol_server=$(terraform output -json | jq -r .exasol_server.value)" >> $GITHUB_OUTPUT
          sleep 30
 
     # Giving the Cluster- and Workspace-ID of Databricks environment from Terraform to GitHub.
@@ -337,6 +339,7 @@ jobs:
                   dsn: ${{ needs.db-environments.outputs.public_ip}}:${{ vars.EXASOL_PORT }}
                   user: ${{ vars.EXASOL_DB_USERNAME }}
                   password: ${{ secrets.EXASOL_DB_PASSWORD }}
+                  host: ${{needs.db-environments.outputs.exasol_server}}
                   dbname: ${{ vars.EXASOL_DB }}
                   schema: ${{ vars.EXASOL_DB_SCHEMA }}
                   query_timeout: 60
