@@ -513,7 +513,7 @@ jobs:
     - name: Compare Fabric
       if: ${{ inputs.db_name == 'fabric' }}
       run: |
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testFabrics.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ secrets.FABRIC_SQL_ENDPOINT_START }}${{ vars.FABRIC_SQL_ENDPOINT_END }} -c ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}} -cs ${{ secrets.AZURE_CLIENT_SECRET}}} -tid  ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}} -db ${{ vars.FABRIC_DB }} -sch ${{ vars.FABRIC_SCHEMA }}${{ github.run_id }}
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testFabrics.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ secrets.FABRIC_SQL_ENDPOINT_START }}${{ vars.FABRIC_SQL_ENDPOINT_END }} -c ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}} -cs ${{ secrets.AZURE_CLIENT_SECRET}} -tid  ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}} -db ${{ vars.FABRIC_DB }} -sch ${{ vars.FABRIC_SCHEMA }}${{ github.run_id }}
     
     - name: Compare Oracle
       if: ${{ inputs.db_name == 'oracle' }}
