@@ -215,6 +215,7 @@ jobs:
       run: |
         echo "databricks_cluster_id=$(terraform output -json | jq -r .databricks_cluster_id.value)" >> $GITHUB_OUTPUT
         echo "databricks_workspace_id=$(terraform output -json | jq -r .databricks_workspace_id.value)" >> $GITHUB_OUTPUT
+   
     - name: Wait for Oracle RDS to be available                                                          
       if: ${{ inputs.db_name == 'oracle' }}
       run: |
@@ -222,6 +223,34 @@ jobs:
         --db-instance-identifier datavault4dbtrdsoracle-static \
         --region ${{ env.AWS_REGION }}
         
+
+    - name: Ensure Oracle RDS is running
+      if: ${{ inputs.db_name == 'oracle' }}
+      run: |
+        set -e
+
+          STATUS=$(aws rds describe-db-instances \
+          --db-instance-identifier datavault4dbtrdsoracle-static \
+          --region ${{ env.AWS_REGION }} \
+          --query 'DBInstances[0].DBInstanceStatus' \
+          --output text)
+
+        echo "Current RDS status: $STATUS"
+
+        if [ "$STATUS" = "stopped" ]; then
+        echo "Starting RDS instance..."
+        aws rds start-db-instance \
+          --db-instance-identifier datavault4dbtrdsoracle-static \
+          --region ${{ env.AWS_REGION }}
+        else
+        echo "RDS instance is already in '$STATUS' state. No need to start."
+        fi
+
+        echo "Waiting for RDS to become available..."
+        aws rds wait db-instance-available \
+        --db-instance-identifier datavault4dbtrdsoracle-static \
+        --region ${{ env.AWS_REGION }}
+   
     - name: Terraform Output oracle
       if: ${{ inputs.db_name == 'oracle'}}
       id: tf_output_oracle
