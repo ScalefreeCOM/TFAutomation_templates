@@ -239,7 +239,7 @@ jobs:
         --region ${{ env.AWS_REGION }}
         else
         echo "RDS instance is already in '$STATUS' state. No need to start."
-        d fi
+        fi
 
         echo "Waiting for RDS to become available..."
         aws rds wait db-instance-available \
