@@ -255,13 +255,6 @@ jobs:
         aws rds wait db-instance-available \
         --db-instance-identifier datavault4dbtrdsoracle-static \
         --region ${{ env.AWS_REGION }}
-
-    - name: Terraform Output oracle
-      if: ${{ inputs.db_name == 'oracle' }}
-      id: tf_output_oracle
-      run: |
-        echo "oracle_db_password=$(terraform output -json | jq -r .oracle_db_password.value)" >> $GITHUB_OUTPUT
-
    
 
     - name: Terraform Output postgres
