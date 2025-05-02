@@ -188,10 +188,12 @@ jobs:
     
     # Initialize Terraform backend dynamically with run_id for each database.
     - name: Terraform Init
+      if: ${{ inputs.db_name != 'oracle' }}
       run: terraform init -backend-config "key=datavault4dbtenvironments/${{ github.run_id }}/${{ inputs.db_name }}/terraform.state" -backend-config "bucket=scalefree-tf-backend" -backend-config "region=eu-west-1" -backend-config "dynamodb_table=scalefree-tf-lock-backend"
         
     # Apply Terraform configuration with run_id as input
     - name: Terraform Apply
+      if: ${{ inputs.db_name != 'oracle' }}
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
 
     # Store Run_id in FIFO SQS when the environment should not be destroyed, to shut down the environment automatically at the End of the day.
