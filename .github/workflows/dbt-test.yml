@@ -224,40 +224,43 @@ jobs:
       run: |
         set -e
 
-          STATUS=$(aws rds describe-db-instances \
-          --db-instance-identifier datavault4dbtrdsoracle-static \
-          --region ${{ env.AWS_REGION }} \
-          --query 'DBInstances[0].DBInstanceStatus' \
-          --output text)
+        STATUS=$(aws rds describe-db-instances \
+        --db-instance-identifier datavault4dbtrdsoracle-static \
+        --region ${{ env.AWS_REGION }} \
+        --query 'DBInstances[0].DBInstanceStatus' \
+        --output text)
 
-        echo "Current RDS status: $STATUS"
+      echo "Current RDS status: $STATUS"
 
-        if [ "$STATUS" = "stopped" ]; then
-        echo "Starting RDS instance..."
-        aws rds start-db-instance \
-          --db-instance-identifier datavault4dbtrdsoracle-static \
-          --region ${{ env.AWS_REGION }}
-        else
-        echo "RDS instance is already in '$STATUS' state. No need to start."
-        fi
+       if [ "$STATUS" = "stopped" ]; then
+       echo "Starting RDS instance..."
+       aws rds start-db-instance \
+        --db-instance-identifier datavault4dbtrdsoracle-static \
+        --region ${{ env.AWS_REGION }}
+       else
+       echo "RDS instance is already in '$STATUS' state. No need to start."
+       d fi
 
-        echo "Waiting for RDS to become available..."
-        aws rds wait db-instance-available \
+       echo "Waiting for RDS to become available..."
+       aws rds wait db-instance-available \
         --db-instance-identifier datavault4dbtrdsoracle-static \
         --region ${{ env.AWS_REGION }}
 
-    - name: Wait for Oracle RDS to be available                                                          
-      if: ${{ inputs.db_name == 'oracle' }}
-      run: |
-        aws rds wait db-instance-available \
-        --db-instance-identifier datavault4dbtrdsoracle-static \
-        --region ${{ env.AWS_REGION }}    
-   
-    - name: Terraform Output oracle
-      if: ${{ inputs.db_name == 'oracle'}}
-      id: tf_output_oracle
-      run: |
-        echo "oracle_db_password=$(terraform output -json | jq -r .oracle_db_password.value)" >> $GITHUB_OUTPUT                                    
+      # hardcoded creds for oracle static test only
+echo "ORACLE_USER=DV4DBTSCHEMA" >> $GITHUB_ENV; echo "ORACLE_PASSWORD=Test1234!" >> $GITHUB_ENV
+
+- name: Wait for Oracle RDS to be available                                                          
+  if: ${{ inputs.db_name == 'oracle' }}
+  run: |
+    aws rds wait db-instance-available \
+      --db-instance-identifier datavault4dbtrdsoracle-static \
+      --region ${{ env.AWS_REGION }}
+
+- name: Terraform Output oracle
+  if: ${{ inputs.db_name == 'oracle' }}
+  id: tf_output_oracle
+  run: |
+    echo "oracle_db_password=$(terraform output -json | jq -r .oracle_db_password.value)" >> $GITHUB_OUTPUT
 
    
 
@@ -406,8 +409,8 @@ jobs:
               outputs:
                 user_pw:
                   type: oracle
-                  user: ${{ vars.ORACLE_DB_USER }}
-                  pass: ${{ needs.db-environments.outputs.oracle_db_password }}                                                          ///change for test
+                  user: ${{ vars.ORACLE_USER }}
+                  pass: ${{ vars.ORACLE_PASSWORD }}                                                          ///change for test
                   protocol: ${{ vars.ORACLE_DB_PROTOCOL }}
                   host: ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }}
                   port: ${{ vars.ORACLE_DB_PORT }}
