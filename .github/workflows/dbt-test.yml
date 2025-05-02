@@ -230,24 +230,24 @@ jobs:
         --query 'DBInstances[0].DBInstanceStatus' \
         --output text)
 
-      echo "Current RDS status: $STATUS"
+        echo "Current RDS status: $STATUS"
 
-       if [ "$STATUS" = "stopped" ]; then
-       echo "Starting RDS instance..."
-       aws rds start-db-instance \
+        if [ "$STATUS" = "stopped" ]; then
+         echo "Starting RDS instance..."
+        aws rds start-db-instance \
         --db-instance-identifier datavault4dbtrdsoracle-static \
         --region ${{ env.AWS_REGION }}
-       else
-       echo "RDS instance is already in '$STATUS' state. No need to start."
-       d fi
+        else
+        echo "RDS instance is already in '$STATUS' state. No need to start."
+        d fi
 
-       echo "Waiting for RDS to become available..."
-       aws rds wait db-instance-available \
+        echo "Waiting for RDS to become available..."
+        aws rds wait db-instance-available \
         --db-instance-identifier datavault4dbtrdsoracle-static \
         --region ${{ env.AWS_REGION }}
 
-       echo "ORACLE_USER=DV4DBTSCHEMA" >> $GITHUB_ENV
-       echo "ORACLE_PASSWORD=Test1234!" >> $GITHUB_ENV
+        echo "ORACLE_USER=DV4DBTSCHEMA" >> $GITHUB_ENV
+        echo "ORACLE_PASSWORD=Test1234!" >> $GITHUB_ENV
 
     - name: Wait for Oracle RDS to be available                                                          
       if: ${{ inputs.db_name == 'oracle' }}
