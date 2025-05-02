@@ -246,21 +246,21 @@ jobs:
         --db-instance-identifier datavault4dbtrdsoracle-static \
         --region ${{ env.AWS_REGION }}
 
-      # hardcoded creds for oracle static test only
-echo "ORACLE_USER=DV4DBTSCHEMA" >> $GITHUB_ENV; echo "ORACLE_PASSWORD=Test1234!" >> $GITHUB_ENV
+       echo "ORACLE_USER=DV4DBTSCHEMA" >> $GITHUB_ENV
+       echo "ORACLE_PASSWORD=Test1234!" >> $GITHUB_ENV
 
-- name: Wait for Oracle RDS to be available                                                          
-  if: ${{ inputs.db_name == 'oracle' }}
-  run: |
-    aws rds wait db-instance-available \
-      --db-instance-identifier datavault4dbtrdsoracle-static \
-      --region ${{ env.AWS_REGION }}
+    - name: Wait for Oracle RDS to be available                                                          
+      if: ${{ inputs.db_name == 'oracle' }}
+      run: |
+        aws rds wait db-instance-available \
+        --db-instance-identifier datavault4dbtrdsoracle-static \
+        --region ${{ env.AWS_REGION }}
 
-- name: Terraform Output oracle
-  if: ${{ inputs.db_name == 'oracle' }}
-  id: tf_output_oracle
-  run: |
-    echo "oracle_db_password=$(terraform output -json | jq -r .oracle_db_password.value)" >> $GITHUB_OUTPUT
+    - name: Terraform Output oracle
+      if: ${{ inputs.db_name == 'oracle' }}
+      id: tf_output_oracle
+      run: |
+        echo "oracle_db_password=$(terraform output -json | jq -r .oracle_db_password.value)" >> $GITHUB_OUTPUT
 
    
 
