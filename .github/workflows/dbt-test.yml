@@ -504,6 +504,10 @@ jobs:
       - name: Wait 60s
         if: ${{ inputs.db_name == 'exasol' }}
         run: sleep 60
+      - name: Debug Oracle credentials
+        run: |
+         docker run --rm --entrypoint bash dv4dbt-oracle -c "env | grep ORACLE && cat /user/app/profiles/profiles.yml"
+
 
       # Building docker image from dockerfile for each database.
       - name: Build ${{ inputs.db_name }} image
