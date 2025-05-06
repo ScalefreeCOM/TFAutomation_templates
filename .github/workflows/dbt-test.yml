@@ -397,38 +397,22 @@ jobs:
                   http_path: sql/protocolv1/o/${{ needs.db-environments.outputs.databricks_workspace_id }}/${{ needs.db-environments.outputs.databricks_cluster_id }}
                   token: ${{ secrets.DATABRICKS_TOKEN }}
                   threads: ${{ vars.DATABICKS_THREADS }}
-            EOF      
-  
-      - name: Append Oracle profile to profiles.yml
-        run: |
-         cat <<EOF >> $GITHUB_WORKSPACE/db-environments/generated_files/profiles.yml
-
-          oracle:
-            target: user_pw
-            outputs:
-              user_pw:
-                type: oracle
-                user: ${ORACLE_DB_USER}
-                pass: ${ORACLE_TEST_STATIC_PW}
-                protocol: ${ORACLE_DB_PROTOCOL}
-                host: ${ORACLE_STATIC_HOST}
-                port: ${ORACLE_DB_PORT}
-                service: ${ORACLE_DB_SERVICE}
-                database: ${ORACLE_DB}
-                schema: ${ORACLE_DB_SCHEMA}
-                threads: ${ORACLE_DB_THREADS}
-          EOF
-            env:
-          ORACLE_DB_USER: ${{ secrets.ORACLE_DB_USER }}
-          ORACLE_TEST_STATIC_PW: ${{ secrets.ORACLE_TEST_STATIC_PW }}
-          ORACLE_DB_PROTOCOL: ${{ secrets.ORACLE_DB_PROTOCOL }}
-          ORACLE_STATIC_HOST: ${{ secrets.ORACLE_STATIC_HOST }}
-          ORACLE_DB_PORT: ${{ secrets.ORACLE_DB_PORT }}
-          ORACLE_DB_SERVICE: ${{ secrets.ORACLE_DB_SERVICE }}
-          ORACLE_DB: ${{ secrets.ORACLE_DB }}
-          ORACLE_DB_SCHEMA: ${{ secrets.ORACLE_DB_SCHEMA }}
-          ORACLE_DB_THREADS: ${{ secrets.ORACLE_DB_THREADS }}
-
+                
+            oracle:
+              target: user_pw
+              outputs:
+                user_pw:
+                  type: oracle
+                  user: ${{ vars.ORACLE_DB_USER }}
+                  pass: ${{ secrets.ORACLE_STATIC_PW }}                                                          ///change for test
+                  protocol: ${{ vars.ORACLE_DB_PROTOCOL }}
+                  host: ${{ vars.ORACLE_STATIC_HOST }}
+                  port: ${{ vars.ORACLE_DB_PORT }}
+                  service: ${{ vars.ORACLE_DB_SERVICE }}
+                  database: ${{ vars.ORACLE_DB }}
+                  schema: ${{ vars.ORACLE_DB_SCHEMA }}
+                  threads: ${{ vars.ORACLE_DB_THREADS }}
+            EOF
             
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
