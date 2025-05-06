@@ -405,7 +405,7 @@ jobs:
                   user: ${{ vars.ORACLE_USER }}
                   pass: ${{ vars.ORACLE_PASSWORD }}                                                          ///change for test
                   protocol: ${{ vars.ORACLE_DB_PROTOCOL }}
-                  host: ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }}
+                  host: ${{ vars.ORACLE_STATIC_HOST }}
                   port: ${{ vars.ORACLE_DB_PORT }}
                   service: ${{ vars.ORACLE_DB_SERVICE }}
                   database: ${{ vars.ORACLE_DB }}
