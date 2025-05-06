@@ -402,8 +402,8 @@ jobs:
               outputs:
                 user_pw:
                   type: oracle
-                  user: ${{ vars.ORACLE_USER }}
-                  pass: ${{ vars.ORACLE_PASSWORD }}                                                          ///change for test
+                  user: ${{ vars.ORACLE_DB_USER }}
+                  pass: ${{ vars.ORACLE_TEST_STATIC_PW }}                                                          ///change for test
                   protocol: ${{ vars.ORACLE_DB_PROTOCOL }}
                   host: ${{ vars.ORACLE_STATIC_HOST }}
                   port: ${{ vars.ORACLE_DB_PORT }}
