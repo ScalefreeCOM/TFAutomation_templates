@@ -506,11 +506,7 @@ jobs:
       - name: Wait 60s
         if: ${{ inputs.db_name == 'exasol' }}
         run: sleep 60
-      - name: Debug Oracle credentials
-        run: |
-         docker run --rm --entrypoint bash dv4dbt-oracle -c "env | grep ORACLE && cat /user/app/profiles/profiles.yml"
-
-
+     
       # Building docker image from dockerfile for each database.
       - name: Build ${{ inputs.db_name }} image
         run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg DBT_TEST_REVISION=${{ inputs.dv4dbt-test-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
@@ -650,7 +646,9 @@ jobs:
       - name: Run run-operation timestamp_format in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-41-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation timestamp_format -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-  
+      - name: Debug Oracle credentials
+        run: |
+            docker run --rm --entrypoint bash dv4dbt-oracle -c "env | grep ORACLE && cat /user/app/profiles/profiles.yml"
   # trigger the destruction of environments if set as a variable during call, after all tests are done.
   trigger-destroy-environments:
     if: ${{ always() && inputs.auto-destroy != 'false' }} 
