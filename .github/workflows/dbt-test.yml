@@ -646,9 +646,7 @@ jobs:
       - name: Run run-operation timestamp_format in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-41-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation timestamp_format -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-      - name: Debug Oracle credentials
-        run: |
-            docker run --rm --entrypoint bash dv4dbt-oracle -c "env | grep ORACLE && cat /user/app/profiles/profiles.yml"
+     
   # trigger the destruction of environments if set as a variable during call, after all tests are done.
   trigger-destroy-environments:
     if: ${{ always() && inputs.auto-destroy != 'false' }} 
