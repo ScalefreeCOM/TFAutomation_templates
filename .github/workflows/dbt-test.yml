@@ -715,6 +715,29 @@ jobs:
     - name: Terraform Destroy
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
 
+    - name: Stop Oracle RDS instance
+      if: ${{ inputs.db_name == 'oracle' }}
+      run: |
+        set -e
+
+        STATUS=$(aws rds describe-db-instances \
+        --db-instance-identifier datavault4dbtrdsoracle-static \
+        --region ${{ env.AWS_REGION }} \
+        --query 'DBInstances[0].DBInstanceStatus' \
+        --output text)
+
+        echo "Current RDS status: $STATUS"
+
+        if [ "$STATUS" = "available" ]; then
+          echo "Stopping Oracle RDS instance..."
+          aws rds stop-db-instance \
+          --db-instance-identifier datavault4dbtrdsoracle-static \
+          --region ${{ env.AWS_REGION }}
+        else
+          echo "RDS is in state '$STATUS'. Skipping stop."
+        fi
+
+
     # Create a token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
     - name: Get Access Token
       if: ${{ inputs.db_name == 'fabric' }}
