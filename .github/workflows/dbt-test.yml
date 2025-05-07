@@ -249,6 +249,16 @@ jobs:
         echo "ORACLE_USER=DV4DBTSCHEMA" >> $GITHUB_ENV
         echo "ORACLE_PASSWORD=Test1234!" >> $GITHUB_ENV
 
+    - name: Increment Oracle semaphore
+      if: ${{ inputs.db_name == 'oracle' }}
+      run: |
+        aws dynamodb update-item \
+          --table-name dv4dbt-cicd-semaphore \
+          --key '{"ID": {"S": "oracle_rds"}}' \
+          --update-expression "SET active_count = if_not_exists(active_count, :zero) + :incr" \
+          --expression-attribute-values '{":incr": {"N": "1"}, ":zero": {"N": "0"}}'
+    
+
     - name: Wait for Oracle RDS to be available                                                          
       if: ${{ inputs.db_name == 'oracle' }}
       run: |
@@ -715,27 +725,32 @@ jobs:
     - name: Terraform Destroy
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
 
-    - name: Stop Oracle RDS instance
+    - name: Decrement Oracle semaphore and stop RDS if unused
       if: ${{ inputs.db_name == 'oracle' }}
       run: |
         set -e
 
-        STATUS=$(aws rds describe-db-instances \
-        --db-instance-identifier datavault4dbtrdsoracle-static \
-        --region ${{ env.AWS_REGION }} \
-        --query 'DBInstances[0].DBInstanceStatus' \
-        --output text)
+        # Decrement semaphore
+        aws dynamodb update-item \
+          --table-name dv4dbt-cicd-semaphore \
+          --key '{"ID": {"S": "oracle_rds"}}' \
+          --update-expression "SET active_count = active_count - :decr" \
+          --expression-attribute-values '{":decr": {"N": "1"}}' \
+          --return-values "UPDATED_NEW" > output.json
 
-        echo "Current RDS status: $STATUS"
+        ACTIVE_COUNT=$(cat output.json | jq -r '.Attributes.active_count.N')
 
-        if [ "$STATUS" = "available" ]; then
-          echo "Stopping Oracle RDS instance..."
+        echo "Active workflows still using Oracle RDS: $ACTIVE_COUNT"
+
+        if [ "$ACTIVE_COUNT" -eq "0" ]; then
+          echo "No more active workflows. Stopping Oracle RDS instance..."
           aws rds stop-db-instance \
-          --db-instance-identifier datavault4dbtrdsoracle-static \
-          --region ${{ env.AWS_REGION }}
+            --db-instance-identifier datavault4dbtrdsoracle-static \
+            --region ${{ env.AWS_REGION }}
         else
-          echo "RDS is in state '$STATUS'. Skipping stop."
+          echo "Other workflows are still using Oracle RDS. Not stopping."
         fi
+
 
 
     # Create a token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
