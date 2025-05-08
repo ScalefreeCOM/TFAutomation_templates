@@ -35,6 +35,8 @@ on:
         value: ${{ jobs.collect-job-results.outputs.dbt-test-result }}
       dbt-macro-test-result: 
         value: ${{ jobs.collect-job-results.outputs.dbt-macro-test-result }}
+      tech-test-result: 
+        value: ${{ jobs.collect-job-results.outputs.tech-test-result }}
       oracle-db-password:
         value: ${{ jobs.db-environments.outputs.oracle_db_password }}
       postgres-db-password:
@@ -857,6 +859,7 @@ jobs:
     outputs: # defining outputs
       dbt-test-result: ${{ steps.results.outputs.dbt-test-result}}
       dbt-macro-test-result: ${{ steps.results.outputs.dbt-macro-test-result}}
+      tech-test-result: ${{ steps.results.outputs.tech-test-result}}
 
     steps:
     - name: Collect results
@@ -865,3 +868,4 @@ jobs:
       run: |
         echo "dbt-test-result=${{ needs.dbt-tests.result }}" >> $GITHUB_OUTPUT
         echo "dbt-macro-test-result=${{ needs.dbt-macro-tests.result }}" >> $GITHUB_OUTPUT
+        echo "dbt-macro-test-result=${{ needs.tech-tests.result }}" >> $GITHUB_OUTPUT
