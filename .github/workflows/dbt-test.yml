@@ -496,7 +496,7 @@ jobs:
     - name: Compare Snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSnowflake.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -a ${{ vars.SNOWFLAKE_ACCOUNT }} -w ${{ vars.SNOWFLAKE_WAREHOUSE }} -u ${{ vars.SNOWFLAKE_USERNAME }} -pk ${{ secrets.SNOWFLAKE_PRIVATE_KEY_DBT }} -db ${{ vars.SNOWFLAKE_DB }} -sch ${{ vars.SNOWFLAKE_SCHEMA }}
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSnowflake.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -a ${{ vars.SNOWFLAKE_ACCOUNT }} -w ${{ vars.SNOWFLAKE_WAREHOUSE }} -u ${{ vars.SNOWFLAKE_USERNAME }} -db ${{ vars.SNOWFLAKE_DB }} -sch ${{ vars.SNOWFLAKE_SCHEMA }}
   
     - name: Compare Databricks
       if: ${{ inputs.db_name == 'databricks' }}
