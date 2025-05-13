@@ -275,7 +275,6 @@ jobs:
                   type: snowflake
                   user: ${{ vars.SNOWFLAKE_USERNAME }}
                   private_key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_DBT }} 
-                  private_key2: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_NOT_ENCRYPTED }}
                   password: ${{ secrets.SNOWFLAKE_PASSWORD }}
                   account: ${{ vars.SNOWFLAKE_ACCOUNT }}
                   role: ${{ vars.SNOWFLAKE_ROLE }}
@@ -493,11 +492,14 @@ jobs:
       if: ${{ inputs.db_name == 'synapse' }}
       run: | 
         python ./datavault4dbt-automatic-tests/db-environments/techtest/testSynapse.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.SYNAPSE_SQL_ENDPOINT }}" -u "${{ vars.SYNAPSE_DB_USERNAME }}" -psw "${{ secrets.SYNAPSE_DB_PASSWORD }}" -db "${{ vars.SYNAPSE_DB }}${{ github.run_id }}" -sch "${{ vars.SYNAPSE_DB_SCHEMA }}"
-  
+    - name: Save private key from secret
+      run: |
+         echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY_NOT_ENCRYPTED }}" | sed 's/\\n/\n/g' > /tmp/snowflake_key.p8  
+         
     - name: Compare Snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSnowflake.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -a ${{ vars.SNOWFLAKE_ACCOUNT }} -w ${{ vars.SNOWFLAKE_WAREHOUSE }} -u ${{ vars.SNOWFLAKE_USERNAME }} -pk ${{ secrets.SNOWFLAKE_PRIVATE_KEY_NOT_ENCRYPTED }} -db ${{ vars.SNOWFLAKE_DB }} -sch ${{ vars.SNOWFLAKE_SCHEMA }} -r ${{ vars.SNOWFLAKE_ROLE }}
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSnowflake.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -a ${{ vars.SNOWFLAKE_ACCOUNT }} -w ${{ vars.SNOWFLAKE_WAREHOUSE }} -u ${{ vars.SNOWFLAKE_USERNAME }} -pk /tmp/snowflake_key.p8 -db ${{ vars.SNOWFLAKE_DB }} -sch ${{ vars.SNOWFLAKE_SCHEMA }} -r ${{ vars.SNOWFLAKE_ROLE }}
   
     - name: Compare Databricks
       if: ${{ inputs.db_name == 'databricks' }}
