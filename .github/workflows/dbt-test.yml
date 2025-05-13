@@ -275,6 +275,7 @@ jobs:
                   type: snowflake
                   user: ${{ vars.SNOWFLAKE_USERNAME }}
                   private_key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_DBT }} 
+                  private_key2: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_NOT_ENCRYPTED }}
                   password: ${{ secrets.SNOWFLAKE_PASSWORD }}
                   account: ${{ vars.SNOWFLAKE_ACCOUNT }}
                   role: ${{ vars.SNOWFLAKE_ROLE }}
@@ -496,7 +497,7 @@ jobs:
     - name: Compare Snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSnowflake.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -a ${{ vars.SNOWFLAKE_ACCOUNT }} -w ${{ vars.SNOWFLAKE_WAREHOUSE }} -u ${{ vars.SNOWFLAKE_USERNAME }} -pk  $GITHUB_WORKSPACE/db-environments/generated_files/snowflake_authenticator_key.pem -db ${{ vars.SNOWFLAKE_DB }} -sch ${{ vars.SNOWFLAKE_SCHEMA }}
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSnowflake.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -a ${{ vars.SNOWFLAKE_ACCOUNT }} -w ${{ vars.SNOWFLAKE_WAREHOUSE }} -u ${{ vars.SNOWFLAKE_USERNAME }} -pk ${{ secrets.SNOWFLAKE_PRIVATE_KEY_NOT_ENCRYPTED }} -db ${{ vars.SNOWFLAKE_DB }} -sch ${{ vars.SNOWFLAKE_SCHEMA }} -r ${{ vars.SNOWFLAKE_ROLE }}
   
     - name: Compare Databricks
       if: ${{ inputs.db_name == 'databricks' }}
