@@ -247,7 +247,9 @@ jobs:
         --region ${{ env.AWS_REGION }}
 
         echo "ORACLE_USER=DV4DBTSCHEMA" >> $GITHUB_ENV
-        echo "ORACLE_PASSWORD=Test1234!" >> $GITHUB_ENV
+        echo "ORACLE_PASSWORD=${{ secrets.ORACLE_STATIC_PW }}" >> $GITHUB_ENV
+
+
 
     - name: Increment Oracle semaphore
       if: ${{ inputs.db_name == 'oracle' }}
