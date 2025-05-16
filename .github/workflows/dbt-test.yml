@@ -526,23 +526,6 @@ jobs:
       run: |
         python ./datavault4dbt-automatic-tests/db-environments/techtest/testOracle.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }} -p ${{ vars.ORACLE_DB_PORT }} -sv ${{ vars.ORACLE_DB_SERVICE }} -db ${{ vars.ORACLE_DB }} -u ${{ vars.ORACLE_DB_USER }} -psw ${{ needs.db-environments.outputs.oracle_db_password }} -sch ${{ vars.ORACLE_DB_SCHEMA }}
 
-    - name: Flush DB schemas
-      run: |
-        PGPASSWORD='${{ needs.db-environments.outputs.postgres_db_password }}' psql -h "${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{ vars.POSTGRES_DB_HOST_END }}" -U "${{ vars.POSTGRES_DB_USERNAME }}" -d "${{ vars.POSTGRES_DB }}${{ github.run_id }}" -p "${{ vars.POSTGRES_PORT }}" -c "DROP SCHEMA IF EXISTS \"${{ vars.POSTGRES_DB_SCHEMA }}\" CASCADE;" || true
-
-        PGPASSWORD='${{ needs.db-environments.outputs.redshift_db_password }}' psql -h "${{ vars.REDSHIFT_DB_HOST_START }}${{ github.run_id }}${{ vars.REDSHIFT_DB_HOST_END }}" -U "${{ vars.REDSHIFT_DB_USERNAME }}" -d "${{ vars.REDSHIFT_DB }}${{ github.run_id }}" -p "${{ vars.REDSHIFT_PORT }}" -c "DROP SCHEMA IF EXISTS \"${{ vars.REDSHIFT_DB_SCHEMA }}${{ github.run_id }}\" CASCADE;" || true
-
-        bq rm -f -r "${{ vars.BIGQUERY_PROJECT }}:${{ vars.BIGQUERY_DATASET }}${{ github.run_id }}" || true
-
-        echo "DROP SCHEMA ${{
-          vars.EXASOL_DB_SCHEMA
-        }} CASCADE;" | exaplus -c "${{ needs.db-environments.outputs.public_ip }}:${{ vars.EXASOL_PORT }}" -u "${{ vars.EXASOL_DB_USERNAME }}" -p "${{ secrets.EXASOL_DB_PASSWORD }}" || true
-
-        sqlcmd -S "${{ vars.SYNAPSE_SQL_ENDPOINT }}" -d "${{ vars.SYNAPSE_DB }}${{ github.run_id }}" -U "${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID }}" -P "${{ secrets.AZURE_CLIENT_SECRET }}" -Q "DROP SCHEMA IF EXISTS [${{ vars.SYNAPSE_DB_SCHEMA }}];" || true
-
-        databricks sql query --warehouse-id "${{ needs.db-environments.outputs.databricks_cluster_id }}" --sql "DROP SCHEMA IF EXISTS ${{ vars.DATABICKS_SCHEMA }}${{ github.run_id }} CASCADE;" || true
-
-  
   dbt-tests:
     needs: generate-files
     runs-on: ubuntu-latest
