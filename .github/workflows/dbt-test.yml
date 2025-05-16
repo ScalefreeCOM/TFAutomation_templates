@@ -447,7 +447,7 @@ jobs:
       run: docker run --name dv4dbt-seed-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt seed --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
       
   tech-tests:
-    needs: [generate-files, db-environments, execute-seeds]
+    needs: [generate-files, execute-seeds]
     runs-on: ubuntu-latest
     # if success or failure to always execute except in the case of an abortion.
     if: ${{ (success() || failure()) && inputs.tech-tests == 'yes' }}
