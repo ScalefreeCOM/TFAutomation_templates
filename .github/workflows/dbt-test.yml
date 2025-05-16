@@ -396,9 +396,45 @@ jobs:
           path: |
             db-environments/generated_files/dv4dbt-sa-keys.json
             db-environments/generated_files/profiles.yml
+
+  execute-seeds:
+    needs: [generate-files, db-environments]
+    runs-on: ubuntu-latest
+    if: ${{ (success() || failure()) && (inputs.tech-tests == 'yes' || inputs.dbt-test == 'yes' || inputs.macro-tests == 'yes' )}}
+    steps:
+      - name: Checkout CICD Repo
+        uses: actions/checkout@v4
+
+      - name: Checkout datavault4dbt-automatic-tests  # Access repo to retrieve the config file
+        uses: actions/checkout@v4
+        with:
+          repository: ScalefreeCOM/datavault4dbt-automatic-tests  
+          token: ${{ steps.generate_token.outputs.token }}
+          path: datavault4dbt-automatic-tests
+          ref: '${{ inputs.test_branch }}'
+
+      # Downloading generated artifacts like profiles.yml
+      - name: Download Artifacts 
+        uses: actions/download-artifact@v4
+        with: 
+          name: my-files-${{ inputs.db_name }}
+          path: db-environments/generated_files
+
+      - name: Run ${{ inputs.db_name }} container dbt seed
+        if: success() || failure()
+        run: docker run --name dv4dbt-seed-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt seed -f --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+
+      - name: Wait 60s (Exasol only)
+        if: ${{ inputs.db_name == 'exasol' }}
+        run: sleep 60
+  
+      # Building the docker Image from the docker Files for each database.
+      - name: Build ${{ inputs.db_name }} image
+        run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg DBT_TEST_REVISION=${{ inputs.dv4dbt-test-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
+  
       
   tech-tests:
-    needs: [generate-files, db-environments]
+    needs: [generate-files, db-environments, execute-seeds]
     runs-on: ubuntu-latest
     # if success or failure to always execute except in the case of an abortion.
     if: ${{ (success() || failure()) && inputs.tech-tests == 'yes' }}
@@ -445,9 +481,10 @@ jobs:
     - name: Build ${{ inputs.db_name }} image
       run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg DBT_TEST_REVISION=${{ inputs.dv4dbt-test-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
 
-    - name: Run ${{ inputs.db_name }} container dbt seed
-      if: success() || failure()
-      run: docker run --name dv4dbt-seed-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt seed --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
+    # # TODO: Exclude and do seed job before tests
+    # - name: Run ${{ inputs.db_name }} container dbt seed
+    #   if: success() || failure()
+    #   run: docker run --name dv4dbt-seed-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt seed -f --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
 
     - name: install python packages
       run: |
@@ -527,7 +564,7 @@ jobs:
         python ./datavault4dbt-automatic-tests/db-environments/techtest/testOracle.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }} -p ${{ vars.ORACLE_DB_PORT }} -sv ${{ vars.ORACLE_DB_SERVICE }} -db ${{ vars.ORACLE_DB }} -u ${{ vars.ORACLE_DB_USER }} -psw ${{ needs.db-environments.outputs.oracle_db_password }} -sch ${{ vars.ORACLE_DB_SCHEMA }}
 
   dbt-tests:
-    needs: generate-files
+    needs: [generate-files, execute-seeds]
     runs-on: ubuntu-latest
     # if success or failure to always execute except in the case of an abortion.
     if: ${{ (success() || failure()) && inputs.dbt-test == 'yes' }}
@@ -553,7 +590,7 @@ jobs:
     - name: Build ${{ inputs.db_name }} image
       run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg DBT_TEST_REVISION=${{ inputs.dv4dbt-test-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
   
-    # Waking up the fabric database
+    # Waking up the fabric database (Could cause problems because of simultanious tech-tests. dbt seed when tests there are already running)
     - name: Fabric warm up SQL Pool
       if: ${{ inputs.db_name == 'fabric' && (success() || failure())}}
       continue-on-error: true
@@ -590,7 +627,7 @@ jobs:
 
 
   dbt-macro-tests:
-      needs: generate-files
+      needs: [generate-files, execute-seeds]
       runs-on: ubuntu-latest
       if: ${{ (success() || failure()) && inputs.macro-tests == 'yes' }}
           
