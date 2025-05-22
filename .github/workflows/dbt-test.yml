@@ -81,7 +81,7 @@ jobs:
       databricks_workspace_id: ${{ steps.tf_output_databricks.outputs.databricks_workspace_id }}
 
       #Output of database passwords
-      oracle_db_password: ${{ steps.tf_output_oracle.outputs.oracle_db_password }}
+      oracle_db_password: ${{ steps.tf_output_oracle.outputs.oracle_db_password }}                                              /// change for test
       postgres_db_password: ${{ steps.tf_output_postgres.outputs.postgres_db_password }}
       redshift_db_password: ${{ steps.tf_output_redshift.outputs.redshift_db_password }}
 
@@ -188,10 +188,12 @@ jobs:
     
     # Initialize Terraform backend dynamically with run_id for each database.
     - name: Terraform Init
+      if: ${{ inputs.db_name != 'oracle' }}
       run: terraform init -backend-config "key=datavault4dbtenvironments/${{ github.run_id }}/${{ inputs.db_name }}/terraform.state" -backend-config "bucket=scalefree-tf-backend" -backend-config "region=eu-west-1" -backend-config "dynamodb_table=scalefree-tf-lock-backend"
         
     # Apply Terraform configuration with run_id as input
     - name: Terraform Apply
+      if: ${{ inputs.db_name != 'oracle' }}
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
 
     # Store Run_id in FIFO SQS when the environment should not be destroyed, to shut down the environment automatically at the End of the day.
@@ -215,12 +217,57 @@ jobs:
       run: |
         echo "databricks_cluster_id=$(terraform output -json | jq -r .databricks_cluster_id.value)" >> $GITHUB_OUTPUT
         echo "databricks_workspace_id=$(terraform output -json | jq -r .databricks_workspace_id.value)" >> $GITHUB_OUTPUT
+        
 
-    - name: Terraform Output oracle
-      if: ${{ inputs.db_name == 'oracle'}}
-      id: tf_output_oracle
+    - name: Ensure Oracle RDS is running
+      if: ${{ inputs.db_name == 'oracle' }}
       run: |
-        echo "oracle_db_password=$(terraform output -json | jq -r .oracle_db_password.value)" >> $GITHUB_OUTPUT
+        set -e
+
+        STATUS=$(aws rds describe-db-instances \
+        --db-instance-identifier datavault4dbtrdsoracle-static \
+        --region ${{ env.AWS_REGION }} \
+        --query 'DBInstances[0].DBInstanceStatus' \
+        --output text)
+
+        echo "Current RDS status: $STATUS"
+
+        if [ "$STATUS" = "stopped" ]; then
+         echo "Starting RDS instance..."
+        aws rds start-db-instance \
+        --db-instance-identifier datavault4dbtrdsoracle-static \
+        --region ${{ env.AWS_REGION }}
+        else
+        echo "RDS instance is already in '$STATUS' state. No need to start."
+        fi
+
+        echo "Waiting for RDS to become available..."
+        aws rds wait db-instance-available \
+        --db-instance-identifier datavault4dbtrdsoracle-static \
+        --region ${{ env.AWS_REGION }}
+
+        echo "ORACLE_USER=DV4DBTSCHEMA" >> $GITHUB_ENV
+        echo "ORACLE_PASSWORD=${{ secrets.ORACLE_STATIC_PW }}" >> $GITHUB_ENV
+
+
+
+    - name: Increment Oracle semaphore
+      if: ${{ inputs.db_name == 'oracle' }}
+      run: |
+        aws dynamodb update-item \
+          --table-name dv4dbt-cicd-semaphore \
+          --key '{"ID": {"S": "oracle_rds"}}' \
+          --update-expression "SET active_count = if_not_exists(active_count, :zero) + :incr" \
+          --expression-attribute-values '{":incr": {"N": "1"}, ":zero": {"N": "0"}}'
+    
+
+    - name: Wait for Oracle RDS to be available                                                          
+      if: ${{ inputs.db_name == 'oracle' }}
+      run: |
+        aws rds wait db-instance-available \
+        --db-instance-identifier datavault4dbtrdsoracle-static \
+        --region ${{ env.AWS_REGION }}
+   
 
     - name: Terraform Output postgres
       if: ${{ inputs.db_name == 'postgres'}}
@@ -362,21 +409,23 @@ jobs:
                   http_path: sql/protocolv1/o/${{ needs.db-environments.outputs.databricks_workspace_id }}/${{ needs.db-environments.outputs.databricks_cluster_id }}
                   token: ${{ secrets.DATABRICKS_TOKEN }}
                   threads: ${{ vars.DATABICKS_THREADS }}
+                
             oracle:
               target: user_pw
               outputs:
                 user_pw:
                   type: oracle
                   user: ${{ vars.ORACLE_DB_USER }}
-                  pass: ${{ needs.db-environments.outputs.oracle_db_password }}
+                  pass: ${{ secrets.ORACLE_STATIC_PW }}                                                         
                   protocol: ${{ vars.ORACLE_DB_PROTOCOL }}
-                  host: ${{ vars.ORACLE_DB_HOST_START }}${{ github.run_id }}${{ vars.ORACLE_DB_HOST_END }}
+                  host: ${{ vars.ORACLE_STATIC_HOST }}
                   port: ${{ vars.ORACLE_DB_PORT }}
                   service: ${{ vars.ORACLE_DB_SERVICE }}
                   database: ${{ vars.ORACLE_DB }}
                   schema: ${{ vars.ORACLE_DB_SCHEMA }}
                   threads: ${{ vars.ORACLE_DB_THREADS }}
             EOF
+            
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with: 
@@ -469,7 +518,7 @@ jobs:
       - name: Wait 60s
         if: ${{ inputs.db_name == 'exasol' }}
         run: sleep 60
-
+     
       # Building docker image from dockerfile for each database.
       - name: Build ${{ inputs.db_name }} image
         run: docker build -t dv4dbt-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg DBT_TEST_REVISION=${{ inputs.dv4dbt-test-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile .
@@ -609,7 +658,7 @@ jobs:
       - name: Run run-operation timestamp_format in ${{ inputs.db_name }} container
         if: success() || failure()
         run: docker run --name dv4dbt-macro-test-41-${{ inputs.db_name }} --network host dv4dbt-${{ inputs.db_name }} dbt run-operation timestamp_format -d --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }}
-  
+     
   # trigger the destruction of environments if set as a variable during call, after all tests are done.
   trigger-destroy-environments:
     if: ${{ always() && inputs.auto-destroy != 'false' }} 
@@ -677,6 +726,34 @@ jobs:
     # destruction of created terraform ressources.
     - name: Terraform Destroy
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
+
+    - name: Decrement Oracle semaphore and stop RDS if unused
+      if: ${{ inputs.db_name == 'oracle' }}
+      run: |
+        set -e
+
+        # Decrement semaphore
+        aws dynamodb update-item \
+          --table-name dv4dbt-cicd-semaphore \
+          --key '{"ID": {"S": "oracle_rds"}}' \
+          --update-expression "SET active_count = active_count - :decr" \
+          --expression-attribute-values '{":decr": {"N": "1"}}' \
+          --return-values "UPDATED_NEW" > output.json
+
+        ACTIVE_COUNT=$(cat output.json | jq -r '.Attributes.active_count.N')
+
+        echo "Active workflows still using Oracle RDS: $ACTIVE_COUNT"
+
+        if [ "$ACTIVE_COUNT" -eq "0" ]; then
+          echo "No more active workflows. Stopping Oracle RDS instance..."
+          aws rds stop-db-instance \
+            --db-instance-identifier datavault4dbtrdsoracle-static \
+            --region ${{ env.AWS_REGION }}
+        else
+          echo "Other workflows are still using Oracle RDS. Not stopping."
+        fi
+
+
 
     # Create a token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
     - name: Get Access Token
