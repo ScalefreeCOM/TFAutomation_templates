@@ -587,15 +587,17 @@ jobs:
     - name: Compare Exasol
       if: ${{ inputs.db_name == 'exasol' }}
       run: |
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testExasol.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ needs.db-environments.outputs.public_ip}}" -p "${{ vars.EXASOL_PORT }}" -u "${{ vars.EXASOL_DB_USERNAME }}" -psw "${{ secrets.EXASOL_DB_PASSWORD }}" -sch "${{ vars.EXASOL_DB_SCHEMA }}"
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testExasol.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ needs.db-environments.outputs.public_ip}} -p ${{ vars.EXASOL_PORT }} -u ${{ vars.EXASOL_DB_USERNAME }} -psw ${{ secrets.EXASOL_DB_PASSWORD }} -sch ${{ vars.EXASOL_DB_SCHEMA }}
 
     - name: Compare Postgres
       if: ${{ inputs.db_name == 'postgres' }}
-      run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testPostgres.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}}" -p "${{ vars.POSTGRES_PORT }}" -u "${{ vars.POSTGRES_DB_USERNAME }}" -psw "${{ needs.db-environments.outputs.postgres_db_password }}" -db "${{ vars.POSTGRES_DB }}${{ github.run_id }}" -sch "${{ vars.POSTGRES_DB_SCHEMA }}"
+      run: |
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testPostgres.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}} -p ${{ vars.POSTGRES_PORT }} -u ${{ vars.POSTGRES_DB_USERNAME }} -psw ${{ needs.db-environments.outputs.postgres_db_password }} -db ${{ vars.POSTGRES_DB }}${{ github.run_id }} -sch ${{ vars.POSTGRES_DB_SCHEMA }}
 
     - name: Compare Redshift
       if: ${{ inputs.db_name == 'redshift' }}
-      run: python ./datavault4dbt-automatic-tests/db-environments/techtest/testRedshift.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho "${{ vars.REDSHIFT_DB_HOST_START }}${{ github.run_id }}${{ vars.REDSHIFT_DB_HOST_END }}" -p "${{ vars.REDSHIFT_PORT }}" -u "${{ vars.REDSHIFT_DB_USERNAME }}" -psw "${{ needs.db-environments.outputs.redshift_db_password }}" -db "${{ vars.REDSHIFT_DB }}${{ github.run_id }}" -sch "${{ vars.REDSHIFT_DB_SCHEMA }}${{ github.run_id }}"
+      run: |
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testRedshift.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ vars.REDSHIFT_DB_HOST_START }}${{ github.run_id }}${{ vars.REDSHIFT_DB_HOST_END }} -p ${{ vars.REDSHIFT_PORT }} -u ${{ vars.REDSHIFT_DB_USERNAME }} -psw ${{ needs.db-environments.outputs.redshift_db_password }} -db ${{ vars.REDSHIFT_DB }}${{ github.run_id }} -sch ${{ vars.REDSHIFT_DB_SCHEMA }}${{ github.run_id }}
  
     - name: Install ODBC Driver for SQL Server (Synapse)
       if: ${{ inputs.db_name == 'synapse' }}
@@ -627,6 +629,7 @@ jobs:
       if: ${{ inputs.db_name == 'databricks' }}
       run: |
         python ./datavault4dbt-automatic-tests/db-environments/techtest/testDatabricks.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ secrets.DATABRICKS_HOST }} -p ${{ vars.DATABRICKS_PORT }} -path sql/protocolv1/o/${{ needs.db-environments.outputs.databricks_workspace_id }}/${{ needs.db-environments.outputs.databricks_cluster_id }} -t ${{ secrets.DATABRICKS_TOKEN }} -sch  ${{ vars.DATABICKS_SCHEMA }}${{ github.run_id }} 
+        
     - name: Install ODBC Driver for SQL Server (Fabric)
       if: ${{ inputs.db_name == 'fabric' }}
       run: |
