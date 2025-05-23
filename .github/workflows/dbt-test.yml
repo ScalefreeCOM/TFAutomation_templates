@@ -382,7 +382,7 @@ jobs:
                   type: postgres
                   host: ${{ vars.POSTGRES_DB_HOST_START }}${{ github.run_id }}${{vars.POSTGRES_DB_HOST_END}}
                   user: ${{ vars.POSTGRES_DB_USERNAME }}
-                  password: '${{ needs.db-environments.outputs.postgres_db_password }}'
+                  password: ${{ needs.db-environments.outputs.postgres_db_password }}
                   port: ${{ vars.POSTGRES_PORT }}
                   dbname: ${{ vars.POSTGRES_DB }}${{ github.run_id }}
                   schema: ${{ vars.POSTGRES_DB_SCHEMA }}
@@ -587,7 +587,7 @@ jobs:
     - name: Compare Exasol
       if: ${{ inputs.db_name == 'exasol' }}
       run: |
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testExasol.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ needs.db-environments.outputs.public_ip}} -p ${{ vars.EXASOL_PORT }} -u ${{ vars.EXASOL_DB_USERNAME }} -psw ${{ secrets.EXASOL_DB_PASSWORD }} -sch ${{ vars.EXASOL_DB_SCHEMA }}
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testExasol.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ needs.db-environments.outputs.public_ip}}:${{ vars.EXASOL_PORT }} -p ${{ vars.EXASOL_PORT }} -u ${{ vars.EXASOL_DB_USERNAME }} -psw ${{ secrets.EXASOL_DB_PASSWORD }} -sch ${{ vars.EXASOL_DB_SCHEMA }}
 
     - name: Compare Postgres
       if: ${{ inputs.db_name == 'postgres' }}
