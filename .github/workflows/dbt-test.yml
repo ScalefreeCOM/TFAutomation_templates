@@ -81,7 +81,7 @@ jobs:
       databricks_workspace_id: ${{ steps.tf_output_databricks.outputs.databricks_workspace_id }}
 
       #Output of database passwords
-      oracle_db_password: ${{ steps.tf_output_oracle.outputs.oracle_db_password }}                                              /// change for test
+      oracle_db_password: ${{ steps.tf_output_oracle.outputs.oracle_db_password }}                                          
       postgres_db_password: ${{ steps.tf_output_postgres.outputs.postgres_db_password }}
       redshift_db_password: ${{ steps.tf_output_redshift.outputs.redshift_db_password }}
 
