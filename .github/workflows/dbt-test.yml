@@ -189,9 +189,6 @@ jobs:
         terraform_version: 1.8.0
         terraform_wrapper: false
 
-    - name: debug 
-      run: |
-        echo "${{ inputs.db_name }}"
     # Initialize Terraform backend dynamically with run_id for each database.
     - name: Terraform Init
       if: ${{ inputs.db_name != 'oracle' }}
