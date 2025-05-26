@@ -196,7 +196,7 @@ jobs:
         
     # Apply Terraform configuration with run_id as input
     - name: Terraform Apply
-      if: ${{ inputs.db_name != 'oracle' || inputs.db_name != 'fabric' }}
+      if: ${{ inputs.db_name != 'oracle' && inputs.db_name != 'fabric' }}
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
 
        # Apply Terraform configuration with run_id as input for fabric to avoid fail massages (check if its possible to use another deployment method for fabric)
