@@ -199,7 +199,13 @@ jobs:
         
     # Apply Terraform configuration with run_id as input
     - name: Terraform Apply
-      if: ${{ inputs.db_name != 'oracle' }}
+      if: ${{ inputs.db_name != 'oracle' || inputs.db_name != 'fabric' }}
+      run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
+
+       # Apply Terraform configuration with run_id as input for fabric to avoid fail massages (check if its possible to use another deployment method for fabric)
+    - name: Terraform Apply Fabric
+      if: ${{ inputs.db_name == 'fabric' }}
+      continue-on-error: true
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
 
     # Store Run_id in FIFO SQS when the environment should not be destroyed, to shut down the environment automatically at the End of the day.
