@@ -292,6 +292,7 @@ jobs:
           --table-name dv4dbt-cicd-semaphore \
           --key '{"ID": {"S": "oracle_rds"}}' \
           --update-expression "SET active_count = if_not_exists(active_count, :zero) + :incr" \
+          --condition-expression "attribute_exists(active_count) AND active_count >= :decr" \
           --expression-attribute-values '{":incr": {"N": "1"}, ":zero": {"N": "0"}}'
     
 
