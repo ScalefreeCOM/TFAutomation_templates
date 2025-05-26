@@ -37,8 +37,6 @@ on:
         value: ${{ jobs.collect-job-results.outputs.dbt-macro-test-result }}
       tech-test-result: 
         value: ${{ jobs.collect-job-results.outputs.tech-test-result }}
-      oracle-db-password:
-        value: ${{ jobs.db-environments.outputs.oracle_db_password }}
       postgres-db-password:
         value: ${{ jobs.db-environments.outputs.postgres_db_password }}
       redshift-db-password:
@@ -86,8 +84,7 @@ jobs:
       databricks_cluster_id: ${{ steps.tf_output_databricks.outputs.databricks_cluster_id }}
       databricks_workspace_id: ${{ steps.tf_output_databricks.outputs.databricks_workspace_id }}
 
-      #Output of database passwords
-      oracle_db_password: ${{ steps.tf_output_oracle.outputs.oracle_db_password }}                                            
+      #Output of database passwords                                           
       postgres_db_password: ${{ steps.tf_output_postgres.outputs.postgres_db_password }}
       redshift_db_password: ${{ steps.tf_output_redshift.outputs.redshift_db_password }}
 
