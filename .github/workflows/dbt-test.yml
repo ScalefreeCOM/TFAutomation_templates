@@ -953,31 +953,34 @@ jobs:
     - name: Decrement Oracle semaphore and stop RDS if unused
       if: ${{ inputs.db_name == 'oracle' }}
       run: |
-        set -e
-
-        # Attempt to decrement only if active_count is greater than 0
-        aws dynamodb update-item \
+        ACTIVE_COUNT=$(aws dynamodb get-item \
           --table-name dv4dbt-cicd-semaphore \
           --key '{"ID": {"S": "oracle_rds"}}' \
-          --update-expression "SET active_count = active_count - :decr" \
-          --condition-expression "attribute_exists(active_count) AND active_count > :zero" \
-          --expression-attribute-values '{":decr": {"N": "1"}, ":zero": {"N": "0"}}' \
-          --return-values "UPDATED_NEW" > output.json || {
-            echo "Decrement failed. active_count may already be 0 or missing."
-            exit 1
-          }
+          --query 'Item.active_count.N' \
+          --output text 2>/dev/null || echo "0")
 
-        ACTIVE_COUNT=$(cat output.json | jq -r '.Attributes.active_count.N')
+        echo "Current Oracle semaphore count: $ACTIVE_COUNT"
 
-        echo "Active workflows still using Oracle RDS: $ACTIVE_COUNT"
+        if [ "$ACTIVE_COUNT" -gt "0" ]; then
+          NEW_COUNT=$((ACTIVE_COUNT - 1))
+          aws dynamodb update-item \
+            --table-name dv4dbt-cicd-semaphore \
+            --key '{"ID": {"S": "oracle_rds"}}' \
+            --update-expression "SET active_count = :new" \
+            --expression-attribute-values "{\":new\": {\"N\": \"$NEW_COUNT\"}}"
 
-        if [ "$ACTIVE_COUNT" -eq "0" ]; then
-          echo "No more active workflows. Stopping Oracle RDS instance..."
-          aws rds stop-db-instance \
-            --db-instance-identifier datavault4dbtrdsoracle-static \
-            --region ${{ env.AWS_REGION }}
+          echo "Decremented. New count: $NEW_COUNT"
+
+          if [ "$NEW_COUNT" -eq "0" ]; then
+            echo "Stopping Oracle RDS..."
+            aws rds stop-db-instance \
+              --db-instance-identifier datavault4dbtrdsoracle-static \
+              --region ${{ env.AWS_REGION }}
+          else
+            echo "Other workflows still using Oracle RDS."
+          fi
         else
-          echo "Other workflows are still using Oracle RDS. Not stopping."
+          echo "Semaphore already 0. Skipping."
         fi
 
     # Create a token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
