@@ -292,7 +292,6 @@ jobs:
           --table-name dv4dbt-cicd-semaphore \
           --key '{"ID": {"S": "oracle_rds"}}' \
           --update-expression "SET active_count = if_not_exists(active_count, :zero) + :incr" \
-          --condition-expression "attribute_exists(active_count) AND active_count >= :decr" \
           --expression-attribute-values '{":incr": {"N": "1"}, ":zero": {"N": "0"}}'
     
 
@@ -956,13 +955,17 @@ jobs:
       run: |
         set -e
 
-        # Decrement semaphore
+        # Attempt to decrement only if active_count is greater than 0
         aws dynamodb update-item \
           --table-name dv4dbt-cicd-semaphore \
           --key '{"ID": {"S": "oracle_rds"}}' \
           --update-expression "SET active_count = active_count - :decr" \
-          --expression-attribute-values '{":decr": {"N": "1"}}' \
-          --return-values "UPDATED_NEW" > output.json
+          --condition-expression "attribute_exists(active_count) AND active_count > :zero" \
+          --expression-attribute-values '{":decr": {"N": "1"}, ":zero": {"N": "0"}}' \
+          --return-values "UPDATED_NEW" > output.json || {
+            echo "Decrement failed. active_count may already be 0 or missing."
+            exit 1
+          }
 
         ACTIVE_COUNT=$(cat output.json | jq -r '.Attributes.active_count.N')
 
@@ -976,8 +979,6 @@ jobs:
         else
           echo "Other workflows are still using Oracle RDS. Not stopping."
         fi
-
-
 
     # Create a token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
     - name: Get Access Token
