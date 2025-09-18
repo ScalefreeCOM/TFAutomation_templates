@@ -60,7 +60,7 @@ jobs:
       run: |
         PROP_NAME="${{ inputs.role_property_name }}"
         ROLE_TYPE=$(gh api repos/${{ github.repository }}/properties/values \
-          --jq ".properties[] | select(.property_name==\"$PROP_NAME\") | .value")
+          --jq ".[] | select(.property_name==\"$PROP_NAME\") | .value")
         if [[ -z "$ROLE_TYPE" ]]; then
           echo "Error: Repository property '$PROP_NAME' is not set."
           exit 1
@@ -68,6 +68,7 @@ jobs:
         echo "ROLE_TYPE=$ROLE_TYPE" >> $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{ github.token }}
+
 
     - name: Construct AWS Role ARN
       id: construct_role
@@ -140,12 +141,14 @@ jobs:
       run: |
         PROP_NAME="${{ inputs.role_property_name }}"
         ROLE_TYPE=$(gh api repos/${{ github.repository }}/properties/values \
-          --jq ".properties[] | select(.property_name==\"$PROP_NAME\") | .value")
+          --jq ".[] | select(.property_name==\"$PROP_NAME\") | .value")
         if [[ -z "$ROLE_TYPE" ]]; then
           echo "Error: Repository property '$PROP_NAME' is not set."
           exit 1
         fi
         echo "ROLE_TYPE=$ROLE_TYPE" >> $GITHUB_OUTPUT
+      env:
+        GH_TOKEN: ${{ github.token }}
 
     - name: Construct AWS Role ARN
       id: construct_role
