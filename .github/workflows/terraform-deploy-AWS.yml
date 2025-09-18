@@ -55,16 +55,23 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # Step 1: Dynamically construct the AWS Role ARN from the custom property
+    - name: Get Repository Property
+      id: get_property
+      run: |
+        PROP_NAME="${{ inputs.role_property_name }}"
+        ROLE_TYPE=$(gh api repos/${{ github.repository }}/properties/values \
+          --jq ".properties[] | select(.property_name==\"$PROP_NAME\") | .value")
+        if [[ -z "$ROLE_TYPE" ]]; then
+          echo "Error: Repository property '$PROP_NAME' is not set."
+          exit 1
+        fi
+        echo "ROLE_TYPE=$ROLE_TYPE" >> $GITHUB_OUTPUT
+
     - name: Construct AWS Role ARN
       id: construct_role
       run: |
-        ROLE_TYPE=${{ github.repository_properties[inputs.role_property_name] }}
-        if [[ -z "$ROLE_TYPE" ]]; then
-          echo "Error: Repository property '${{ inputs.role_property_name }}' is not set."
-          exit 1
-        fi
-        ROLE_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActions${ROLE_TYPE}"
+        ROLE_TYPE=${{ steps.get_property.outputs.ROLE_TYPE }}
+        ROLE_ARN="arn:aws:iam::789268936215:role/GitHubActions${ROLE_TYPE}"
         echo "Assuming role: $ROLE_ARN"
         echo "ROLE_ARN=$ROLE_ARN" >> $GITHUB_OUTPUT
 
