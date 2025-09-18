@@ -66,6 +66,8 @@ jobs:
           exit 1
         fi
         echo "ROLE_TYPE=$ROLE_TYPE" >> $GITHUB_OUTPUT
+      env:
+        GH_TOKEN: ${{ github.token }}
 
     - name: Construct AWS Role ARN
       id: construct_role
@@ -152,6 +154,8 @@ jobs:
         ROLE_ARN="arn:aws:iam::789268936215:role/GitHubActions${ROLE_TYPE}"
         echo "Assuming role: $ROLE_ARN"
         echo "ROLE_ARN=$ROLE_ARN" >> $GITHUB_OUTPUT
+      env:
+        GH_TOKEN: ${{ github.token }}
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
