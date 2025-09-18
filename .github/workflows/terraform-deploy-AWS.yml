@@ -1,0 +1,159 @@
+name: 'Terraform Deploy'
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        type: string
+        default: ubuntu-latest
+      region:
+        type: string
+        default: "eu-west-1" 
+      tf_version:
+        type: string
+        required: true
+      working_directory:
+        type: string
+        required: true
+      tfvars:
+        type: boolean
+        default: false
+      tfvars-var:
+        type: string
+        default: "none"
+      role_property_name: # custom property name
+        type: string
+        default: "AWSRole"
+      approvers:
+        type: string
+        required: true
+      minimum-approvals:
+        type: string
+        default: "1" # For Testing
+      issue-title: 
+        type: string
+        default: "Deploying"
+      issue-body: 
+        type: string
+        default: "Please approve or deny the deployment."
+    secrets:
+       TFAUTOMATION_AWS_ACCESS_KEY:
+         required: true
+       TFAUTOMATION_AWS_SECRET_ACCESS_KEY:
+         required: true
+       AWS_OIDC_ROLE:
+         required: true
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runs-on }}
+    defaults:
+      run:
+        working-directory: ./${{ inputs.working_directory }}
+    outputs:
+      exitcode: ${{ steps.plan.outputs.TF_EXIT_CODE }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Step 1: Dynamically construct the AWS Role ARN from the custom property
+    - name: Construct AWS Role ARN
+      id: construct_role
+      run: |
+        ROLE_TYPE=${{ github.repository_properties[inputs.role_property_name] }}
+        if [[ -z "$ROLE_TYPE" ]]; then
+          echo "Error: Repository property '${{ inputs.role_property_name }}' is not set."
+          exit 1
+        fi
+        ROLE_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActions${ROLE_TYPE}"
+        echo "Assuming role: $ROLE_ARN"
+        echo "ROLE_ARN=$ROLE_ARN" >> $GITHUB_OUTPUT
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ steps.construct_role.outputs.ROLE_ARN }}
+        aws-region: ${{ inputs.region }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ inputs.tf_version }}
+
+    - name: Terraform Init
+      id: init
+      run: terraform init
+
+    - name: Terraform Plan
+      id: plan
+      run: |
+        set -o pipefail
+        terraform plan -out=tfplan -detailed-exitcode | tee /dev/stderr
+        TF_EXIT_CODE=$?
+        echo "Terraform exit code: $TF_EXIT_CODE"
+        if [[ $TF_EXIT_CODE -eq 1 ]]; then
+          exit 1
+        fi
+        echo "TF_EXIT_CODE=$TF_EXIT_CODE" >> $GITHUB_OUTPUT
+
+  deploy:
+    if: ${{ needs.build.outputs.exitcode == 2 }} # Trigger deploy only if there are changes
+    runs-on: ${{ inputs.runs-on }}
+    needs: build
+    defaults:
+      run:
+        working-directory: ./${{ inputs.working_directory }}
+
+    steps:
+    - name: Generate token
+      id: generate_token
+      uses: tibdex/github-app-token@v1
+      with:
+        app_id: ${{ secrets.APPROVAL_APP_ID }}
+        private_key: ${{ secrets.APPROVAL_APP_PRIVATE_KEY }}
+
+    - uses: trstringer/manual-approval@v1
+      timeout-minutes: 58
+      with:
+        secret: ${{ steps.generate_token.outputs.token }}
+        approvers: ${{ inputs.approvers }}
+        minimum-approvals: ${{ inputs.minimum-approvals }}
+        issue-title: ${{ inputs.issue-title }}
+        issue-body: ${{ inputs.issue-body }}
+        exclude-workflow-initiator-as-approver: false
+        additional-approved-words: 'GO'
+        additional-denied-words: 'STOP' 
+
+    # Checkout and AWS configuration steps must be repeated in the deploy job
+    - uses: actions/checkout@v4
+
+    - name: Construct AWS Role ARN
+      id: construct_role
+      run: |
+        ROLE_TYPE=${{ github.repository_properties[inputs.role_property_name] }}
+        ROLE_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActions${ROLE_TYPE}"
+        echo "Assuming role: $ROLE_ARN"
+        echo "ROLE_ARN=$ROLE_ARN" >> $GITHUB_OUTPUT
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ steps.construct_role.outputs.ROLE_ARN }}
+        aws-region: ${{ inputs.region }}
+
+    - name: Generate tfvars
+      if: ${{ inputs.tfvars && inputs.working_directory == 'synapse' }}
+      run: |
+          cd $GITHUB_WORKSPACE/${{ inputs.working_directory }} && cat << EOF > terraform.tfvars
+          ${{ inputs.tfvars-var }}="${{ secrets.SYNAPSE_PASSWORD }}"
+          EOF
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ inputs.tf_version }}
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve
