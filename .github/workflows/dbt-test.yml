@@ -41,6 +41,8 @@ on:
         value: ${{ jobs.db-environments.outputs.postgres_db_password }}
       redshift-db-password:
         value: ${{ jobs.db-environments.outputs.redshift_db_password }}
+      sqlserver-db-password:
+        value: ${{ jobs.db-environments.outputs.sqlserver_db_password }}
     secrets:
       TFAUTOMATION_AWS_ACCESS_KEY:
         required: true
@@ -68,6 +70,8 @@ on:
         required: true
       DATABRICKS_TOKEN:
         required: true
+      SQLSERVER_DB_PASSWORD:
+        required: false
 
 jobs:
   db-environments:
@@ -87,6 +91,7 @@ jobs:
       #Output of database passwords                                           
       postgres_db_password: ${{ steps.tf_output_postgres.outputs.postgres_db_password }}
       redshift_db_password: ${{ steps.tf_output_redshift.outputs.redshift_db_password }}
+      sqlserver_db_password: ${{ steps.tf_output_sqlserver.outputs.sqlserver_db_password }}
 
     steps:
     - name: Checkout
@@ -102,7 +107,7 @@ jobs:
     # Microsoft Azure Login
     - name: 'Az CLI login'
       id: azure-login
-      if: ${{ inputs.db_name == 'synapse' || inputs.db_name == 'fabric'}}
+      if: ${{ inputs.db_name == 'synapse' || inputs.db_name == 'fabric' }}
       uses: azure/login@v1
       with:
         client-id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
@@ -314,6 +319,13 @@ jobs:
       id: tf_output_redshift
       run: |
         echo "redshift_db_password=$(terraform output -json | jq -r .redshift_db_password.value)" >> "$GITHUB_OUTPUT"
+    
+    - name: Terraform Output sqlserver
+      if: ${{ inputs.db_name == 'sqlserver' }}
+      id: tf_output_sqlserver
+      run: |
+        echo "sqlserver_host=$(terraform output -json | jq -r .sqlserver_host.value)" >> $GITHUB_OUTPUT
+        echo "sqlserver_db_password=$(terraform output -json | jq -r .sqlserver_password.value)" >> $GITHUB_OUTPUTT
 
     # Setup and starting of Exasol environment.
     - name: Setup environment and start Server
@@ -407,6 +419,19 @@ jobs:
                   threads: ${{ vars.SYNAPSE_THREADS }}
                   username: ${{ vars.SYNAPSE_DB_USERNAME }}
                   password: ${{ secrets.SYNAPSE_DB_PASSWORD }}
+            sqlserver:
+              target: dev
+              outputs:
+                dev:
+                  type: sqlserver
+                  driver: 'ODBC Driver 18 for SQL Server'
+                  server: ${{ steps.tf_output_sqlserver.outputs.sqlserver_host }}
+                  port: 1433
+                  database: 'master'
+                  user: 'adminuser'
+                  password: ${{ steps.db-environments.outputs.sqlserver_db_password }} 
+                  encrypt: true
+                  trust_cert: true
             exasol:
               target: user_pw
               outputs:
@@ -653,6 +678,22 @@ jobs:
       run: |
         python ./datavault4dbt-automatic-tests/db-environments/techtest/testFabrics.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ secrets.FABRIC_SQL_ENDPOINT_START }}${{ vars.FABRIC_SQL_ENDPOINT_END }} -c ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}} -cs ${{ secrets.AZURE_CLIENT_SECRET}} -tid  ${{ secrets.TFAUTOMATION_AZURE_TENANT_ID}} -db ${{ vars.FABRIC_DB }} -sch ${{ vars.FABRIC_SCHEMA }}${{ github.run_id }}
     
+    - name: Install ODBC Driver for SQL Server (SQL Server)
+      if: ${{ inputs.db_name == 'sqlserver' }}
+      run: |
+        sudo apt-get update
+        curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+        sudo install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
+        curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+        sudo apt-get update
+        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+        sudo apt-get install -y unixodbc-dev
+    
+    - name: Compare SQL Server
+      if: ${{ inputs.db_name == 'sqlserver' }}
+      run: |
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSqlServer.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ steps.tf_output_sqlserver.outputs.sqlserver_host }} -p ${{ vars.SQLSERVER_DB_PORT }} -db ${{ vars.SQLSERVER_DB }} -u ${{ vars.SQLSERVER_USER }} -psw ${{ secrets.SQLSERVER_DB_PASSWORD }} -sch ${{ vars.SQLSERVER_SCHEMA }}
+
     - name: Compare Oracle
       if: ${{ inputs.db_name == 'oracle' }}
       run: |
@@ -905,7 +946,7 @@ jobs:
         role-to-assume: ${{ secrets.AWS_OIDC_ROLE }}
 
     - name: 'Az CLI login'
-      if: ${{ inputs.db_name == 'synapse' || inputs.db_name == 'fabric'}}
+      if: ${{ inputs.db_name == 'synapse' || inputs.db_name == 'fabric' }}
       uses: azure/login@v1
       with:
         client-id: ${{ secrets.TFAUTOMATION_AZURE_CLIENT_ID}}
