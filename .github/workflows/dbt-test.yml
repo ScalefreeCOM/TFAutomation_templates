@@ -91,6 +91,7 @@ jobs:
       #Output of database passwords                                           
       postgres_db_password: ${{ steps.tf_output_postgres.outputs.postgres_db_password }}
       redshift_db_password: ${{ steps.tf_output_redshift.outputs.redshift_db_password }}
+      sqlserver_host: ${{ steps.tf_output_sqlserver.outputs.sqlserver_host }}
       sqlserver_db_password: ${{ steps.tf_output_sqlserver.outputs.sqlserver_db_password }}
 
     steps:
@@ -420,18 +421,20 @@ jobs:
                   username: ${{ vars.SYNAPSE_DB_USERNAME }}
                   password: ${{ secrets.SYNAPSE_DB_PASSWORD }}
             sqlserver:
-              target: dev
+              target: user_pw
               outputs:
-                dev:
+                user_pw:
                   type: sqlserver
                   driver: 'ODBC Driver 18 for SQL Server'
-                  server: ${{ steps.tf_output_sqlserver.outputs.sqlserver_host }}
+                  server: ${{ needs.db-environments.outputs.sqlserver_host }}
                   port: 1433
-                  database: 'master'
-                  user: 'adminuser'
-                  password: ${{ steps.db-environments.outputs.sqlserver_db_password }} 
+                  database: master
+                  schema: dbo
+                  user: adminuser 
+                  password: ${{ needs.db-environments.outputs.sqlserver_db_password }}
                   encrypt: true
                   trust_cert: true
+                  threads: 4
             exasol:
               target: user_pw
               outputs:
@@ -463,9 +466,9 @@ jobs:
                   client_secret: ${{ secrets.AZURE_CLIENT_SECRET}}
                   threads: ${{ vars.FABRIC_THREADS }}
             databricks:
-              target: dev
+              target: user_pw
               outputs:
-                dev:
+                user_pw:
                   type: databricks
                   schema: ${{ vars.DATABICKS_SCHEMA }}${{ github.run_id }}
                   host: ${{ secrets.DATABRICKS_HOST }}
@@ -692,7 +695,15 @@ jobs:
     - name: Compare SQL Server
       if: ${{ inputs.db_name == 'sqlserver' }}
       run: |
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSqlServer.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ steps.tf_output_sqlserver.outputs.sqlserver_host }} -p ${{ vars.SQLSERVER_DB_PORT }} -db ${{ vars.SQLSERVER_DB }} -u ${{ vars.SQLSERVER_USER }} -psw ${{ secrets.SQLSERVER_DB_PASSWORD }} -sch ${{ vars.SQLSERVER_SCHEMA }}
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testSqlServer.py \
+        -i './datavault4dbt-automatic-tests/seeds' \
+        -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' \
+        -ho ${{ needs.db-environments.outputs.sqlserver_host }} \
+        -p 1433 \
+        -db master \
+        -u adminuser \
+        -psw ${{ needs.db-environments.outputs.sqlserver_db_password }} \
+        -sch dbo
 
     - name: Compare Oracle
       if: ${{ inputs.db_name == 'oracle' }}
