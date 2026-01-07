@@ -325,7 +325,7 @@ jobs:
       id: tf_output_sqlserver
       run: |
         echo "sqlserver_host=$(terraform output -json | jq -r .sqlserver_host.value)" >> $GITHUB_OUTPUT
-        echo "sqlserver_db_password=$(terraform output -json | jq -r .sqlserver_password.value)" >> $GITHUB_OUTPUTT
+        echo "sqlserver_db_password=$(terraform output -json | jq -r .sqlserver_password.value)" >> $GITHUB_OUTPUT
 
     # Setup and starting of Exasol environment.
     - name: Setup environment and start Server
