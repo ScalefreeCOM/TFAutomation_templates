@@ -431,7 +431,7 @@ jobs:
                   database: master
                   schema: dbo
                   user: adminuser 
-                  password: ${{ needs.db-environments.outputs.sqlserver_db_password }}
+                  password: '${{ needs.db-environments.outputs.sqlserver_db_password }}'
                   encrypt: true
                   trust_cert: true
                   threads: 4
