@@ -369,6 +369,27 @@ jobs:
         echo "sqlserver_host=${{ secrets.SQLSERVER_STATIC_HOST }}" >> $GITHUB_OUTPUT
         echo "sqlserver_db_password=${{ secrets.SQLSERVER_STATIC_PASSWORD }}" >> $GITHUB_OUTPUT
     
+    - name: DEBUG - Check Secrets
+      if: ${{ inputs.db_name == 'sqlserver' }}
+      env:
+        HOST_CHECK: ${{ secrets.SQLSERVER_STATIC_HOST }}
+        PASS_CHECK: ${{ secrets.SQLSERVER_STATIC_PASSWORD }}
+      run: |
+        echo "--- DEBUG INFO ---"
+        
+        if [ -z "$HOST_CHECK" ]; then
+          echo "ERROR: SQLSERVER_STATIC_HOST is EMPTY (None)."
+        else
+          echo "SUCCESS: SQLSERVER_STATIC_HOST is present (Length: ${#HOST_CHECK})."
+        fi
+        
+        if [ -z "$PASS_CHECK" ]; then
+          echo "ERROR: SQLSERVER_STATIC_PASSWORD is EMPTY (None)."
+        else
+          echo "SUCCESS: SQLSERVER_STATIC_PASSWORD is present (Length: ${#PASS_CHECK})."
+        fi
+        echo "------------------"
+    
     # - name: Terraform Output sqlserver
     #   if: ${{ inputs.db_name == 'sqlserver' }}
     #   id: tf_output_sqlserver
