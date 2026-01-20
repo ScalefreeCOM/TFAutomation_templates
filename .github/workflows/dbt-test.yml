@@ -71,9 +71,9 @@ on:
       DATABRICKS_TOKEN:
         required: true
       SQLSERVER_STATIC_PASSWORD:
-        required: false
+        required: true
       SQLSERVER_STATIC_HOST:
-        required: false
+        required: true
 
 jobs:
   db-environments:
