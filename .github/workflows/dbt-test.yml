@@ -1097,10 +1097,9 @@ jobs:
     - name: Drop Test Schema
       if: ${{ inputs.db_name == 'sqlserver' }}
       run: |
-        # 1. Install driver so we can connect
         sudo apt-get update && sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+        pip install pyodbc
         
-        # 2. Run Python one-liner to drop the schema
         python3 -c "
         import pyodbc;
         run_id = '${{ github.run_id }}';
@@ -1109,14 +1108,11 @@ jobs:
         
         conn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER=${{ vars.SQLSERVER_STATIC_HOST }};PORT=1433;DATABASE=dv4dbt;UID=adminuser;PWD=${{ secrets.SQLSERVER_STATIC_PASSWORD }};Encrypt=yes;TrustServerCertificate=yes', autocommit=True);
         
-        # Drop all tables in the schema first (SQL Server requires this)
         cursor = conn.cursor();
         cursor.execute(f\"DECLARE @sql NVARCHAR(MAX) = N''; SELECT @sql += 'DROP TABLE ' + QUOTENAME('{schema_name}') + '.' + QUOTENAME(name) + ';' FROM sys.tables WHERE schema_id = SCHEMA_ID('{schema_name}'); EXEC sp_executesql @sql;\");
         
-        # Drop all views
         cursor.execute(f\"DECLARE @sql NVARCHAR(MAX) = N''; SELECT @sql += 'DROP VIEW ' + QUOTENAME('{schema_name}') + '.' + QUOTENAME(name) + ';' FROM sys.views WHERE schema_id = SCHEMA_ID('{schema_name}'); EXEC sp_executesql @sql;\");
         
-        # Finally, drop the schema itself
         cursor.execute(f\"IF EXISTS (SELECT * FROM sys.schemas WHERE name = '{schema_name}') DROP SCHEMA [{schema_name}]\");
         print('Cleanup complete.');
         "
