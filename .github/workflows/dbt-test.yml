@@ -91,8 +91,8 @@ jobs:
       #Output of database passwords                                           
       postgres_db_password: ${{ steps.tf_output_postgres.outputs.postgres_db_password }}
       redshift_db_password: ${{ steps.tf_output_redshift.outputs.redshift_db_password }}
-      sqlserver_host: ${{ steps.tf_output_sqlserver.outputs.sqlserver_host || steps.static_output_sqlserver.outputs.sqlserver_host }}
-      sqlserver_db_password: ${{ steps.tf_output_sqlserver.outputs.sqlserver_db_password || steps.static_output_sqlserver.outputs.sqlserver_db_password }}
+      sqlserver_host: ${{ steps.static_output_sqlserver.outputs.sqlserver_host }}
+      sqlserver_db_password: ${{ steps.static_output_sqlserver.outputs.sqlserver_db_password }}
 
     steps:
     - name: Checkout
