@@ -369,26 +369,12 @@ jobs:
         echo "sqlserver_host=${{ secrets.SQLSERVER_STATIC_HOST }}" >> $GITHUB_OUTPUT
         echo "sqlserver_db_password=${{ secrets.SQLSERVER_STATIC_PASSWORD }}" >> $GITHUB_OUTPUT
     
-    - name: DEBUG - Check Secrets
+    - name: DEBUG - Verify Step Outputs
       if: ${{ inputs.db_name == 'sqlserver' }}
-      env:
-        HOST_CHECK: ${{ secrets.SQLSERVER_STATIC_HOST }}
-        PASS_CHECK: ${{ secrets.SQLSERVER_STATIC_PASSWORD }}
       run: |
-        echo "--- DEBUG INFO ---"
-        
-        if [ -z "$HOST_CHECK" ]; then
-          echo "ERROR: SQLSERVER_STATIC_HOST is EMPTY (None)."
-        else
-          echo "SUCCESS: SQLSERVER_STATIC_HOST is present (Length: ${#HOST_CHECK})."
-        fi
-        
-        if [ -z "$PASS_CHECK" ]; then
-          echo "ERROR: SQLSERVER_STATIC_PASSWORD is EMPTY (None)."
-        else
-          echo "SUCCESS: SQLSERVER_STATIC_PASSWORD is present (Length: ${#PASS_CHECK})."
-        fi
-        echo "------------------"
+        echo "Checking if step output was set..."
+        echo "Host: ${{ steps.static_output_sqlserver.outputs.sqlserver_host }}"
+        echo "Pass: ${{ steps.static_output_sqlserver.outputs.sqlserver_db_password }}"
     
     # - name: Terraform Output sqlserver
     #   if: ${{ inputs.db_name == 'sqlserver' }}
@@ -412,6 +398,17 @@ jobs:
     runs-on: ubuntu-latest
     if: success() || failure() 
     steps:
+      - name: DEBUG - Verify Incoming Inputs
+        run: |
+          echo "Checking what generate-files received..."
+          echo "Host from needs: ${{ needs.db-environments.outputs.sqlserver_host }}"
+          
+          # Check if it's empty
+          if [ -z "${{ needs.db-environments.outputs.sqlserver_host }}" ]; then
+            echo "CRITICAL ERROR: The host variable is EMPTY."
+          else
+            echo "SUCCESS: The host variable contains data."
+          fi
       - name: Checkout
         uses: actions/checkout@v3
 
