@@ -364,7 +364,7 @@ jobs:
       if: ${{ inputs.db_name == 'sqlserver' }}
       id: static_output_sqlserver
       run: |
-        echo "sqlserver_host=${{ vars.SQLSERVER_STATIC_HOST }}" >> $GITHUB_OUTPUT
+        echo "sqlserver_host=${{ secrets.SQLSERVER_STATIC_HOST }}" >> $GITHUB_OUTPUT
         echo "sqlserver_db_password=${{ secrets.SQLSERVER_STATIC_PASSWORD }}" >> $GITHUB_OUTPUT
     
     # - name: Terraform Output sqlserver
@@ -1106,7 +1106,7 @@ jobs:
         schema_name = f'dbt_test_{run_id}';
         print(f'Dropping schema: {schema_name}');
         
-        conn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER=${{ vars.SQLSERVER_STATIC_HOST }};PORT=1433;DATABASE=dv4dbt;UID=adminuser;PWD=${{ secrets.SQLSERVER_STATIC_PASSWORD }};Encrypt=yes;TrustServerCertificate=yes', autocommit=True);
+        conn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER=${{ secrets.SQLSERVER_STATIC_HOST }};PORT=1433;DATABASE=dv4dbt;UID=adminuser;PWD=${{ secrets.SQLSERVER_STATIC_PASSWORD }};Encrypt=yes;TrustServerCertificate=yes', autocommit=True);
         
         cursor = conn.cursor();
         cursor.execute(f\"DECLARE @sql NVARCHAR(MAX) = N''; SELECT @sql += 'DROP TABLE ' + QUOTENAME('{schema_name}') + '.' + QUOTENAME(name) + ';' FROM sys.tables WHERE schema_id = SCHEMA_ID('{schema_name}'); EXEC sp_executesql @sql;\");
