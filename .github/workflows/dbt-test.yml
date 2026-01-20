@@ -70,7 +70,9 @@ on:
         required: true
       DATABRICKS_TOKEN:
         required: true
-      SQLSERVER_DB_PASSWORD:
+      SQLSERVER_STATIC_PASSWORD:
+        required: false
+      SQLSERVER_STATIC_HOST:
         required: false
 
 jobs:
