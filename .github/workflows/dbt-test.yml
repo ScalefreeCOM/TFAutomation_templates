@@ -70,10 +70,8 @@ on:
         required: true
       DATABRICKS_TOKEN:
         required: true
-      SQLSERVER_STATIC_PASSWORD:
-        required: true
-      SQLSERVER_STATIC_HOST:
-        required: true
+      SQLSERVER_DB_PASSWORD:
+        required: false
 
 jobs:
   db-environments:
@@ -93,8 +91,8 @@ jobs:
       #Output of database passwords                                           
       postgres_db_password: ${{ steps.tf_output_postgres.outputs.postgres_db_password }}
       redshift_db_password: ${{ steps.tf_output_redshift.outputs.redshift_db_password }}
-      sqlserver_host: ${{ steps.static_output_sqlserver.outputs.sqlserver_host }}
-      sqlserver_db_password: ${{ steps.static_output_sqlserver.outputs.sqlserver_db_password }}
+      sqlserver_host: ${{ steps.tf_output_sqlserver.outputs.sqlserver_host }}
+      sqlserver_db_password: ${{ steps.tf_output_sqlserver.outputs.sqlserver_db_password }}
 
     steps:
     - name: Checkout
@@ -204,7 +202,7 @@ jobs:
         
     # Apply Terraform configuration with run_id as input
     - name: Terraform Apply
-      if: ${{ inputs.db_name != 'oracle' && inputs.db_name != 'fabric' && inputs.db_name != 'sqlserver' }}
+      if: ${{ inputs.db_name != 'oracle' && inputs.db_name != 'fabric' }}
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
 
        # Apply Terraform configuration with run_id as input for fabric to avoid fail massages (check if its possible to use another deployment method for fabric)
@@ -302,6 +300,7 @@ jobs:
           --update-expression "SET active_count = if_not_exists(active_count, :zero) + :incr" \
           --expression-attribute-values '{":incr": {"N": "1"}, ":zero": {"N": "0"}}'
     
+
     - name: Wait for Oracle RDS to be available                                                          
       if: ${{ inputs.db_name == 'oracle' }}
       run: |
@@ -322,66 +321,12 @@ jobs:
       run: |
         echo "redshift_db_password=$(terraform output -json | jq -r .redshift_db_password.value)" >> "$GITHUB_OUTPUT"
     
-    - name: Ensure SQL Server RDS is running
+    - name: Terraform Output sqlserver
       if: ${{ inputs.db_name == 'sqlserver' }}
+      id: tf_output_sqlserver
       run: |
-        set -e
-        DB_INSTANCE_ID="dv4dbt-sqlserver-static"
-        REGION="${{ env.AWS_REGION }}"
-
-        STATUS=$(aws rds describe-db-instances \
-          --db-instance-identifier "$DB_INSTANCE_ID" \
-          --region "$REGION" \
-          --query 'DBInstances[0].DBInstanceStatus' \
-          --output text)
-
-        echo "Current RDS status: $STATUS"
-
-        if [ "$STATUS" = "stopped" ]; then
-          echo "Starting RDS instance..."
-          aws rds start-db-instance --db-instance-identifier "$DB_INSTANCE_ID" --region "$REGION"
-        elif [ "$STATUS" = "stopping" ]; then
-          echo "RDS is stopping. Waiting..."
-          while [ "$STATUS" = "stopping" ]; do
-            sleep 30
-            STATUS=$(aws rds describe-db-instances --db-instance-identifier "$DB_INSTANCE_ID" --region "$REGION" --query 'DBInstances[0].DBInstanceStatus' --output text)
-            echo "Status: $STATUS"
-          done
-          aws rds start-db-instance --db-instance-identifier "$DB_INSTANCE_ID" --region "$REGION"
-        fi
-
-        echo "Waiting for Available status..."
-        aws rds wait db-instance-available --db-instance-identifier "$DB_INSTANCE_ID" --region "$REGION"
-
-    - name: Increment SQL Server Semaphore
-      if: ${{ inputs.db_name == 'sqlserver' }}
-      run: |
-        aws dynamodb update-item \
-          --table-name dv4dbt-cicd-semaphore \
-          --key '{"ID": {"S": "sqlserver_rds"}}' \
-          --update-expression "SET active_count = if_not_exists(active_count, :zero) + :incr" \
-          --expression-attribute-values '{":incr": {"N": "1"}, ":zero": {"N": "0"}}'
-
-    - name: Output SQL Server Details
-      if: ${{ inputs.db_name == 'sqlserver' }}
-      id: static_output_sqlserver
-      run: |
-        echo "sqlserver_host=${{ secrets.SQLSERVER_STATIC_HOST }}" >> $GITHUB_OUTPUT
-        echo "sqlserver_db_password=${{ secrets.SQLSERVER_STATIC_PASSWORD }}" >> $GITHUB_OUTPUT
-    
-    - name: DEBUG - Verify Step Outputs
-      if: ${{ inputs.db_name == 'sqlserver' }}
-      run: |
-        echo "Checking if step output was set..."
-        echo "Host: ${{ steps.static_output_sqlserver.outputs.sqlserver_host }}"
-        echo "Pass: ${{ steps.static_output_sqlserver.outputs.sqlserver_db_password }}"
-    
-    # - name: Terraform Output sqlserver
-    #   if: ${{ inputs.db_name == 'sqlserver' }}
-    #   id: tf_output_sqlserver
-    #   run: |
-    #     echo "sqlserver_host=$(terraform output -json | jq -r .sqlserver_host.value)" >> $GITHUB_OUTPUT
-    #     echo "sqlserver_db_password=$(terraform output -json | jq -r .sqlserver_password.value)" >> $GITHUB_OUTPUT
+        echo "sqlserver_host=$(terraform output -json | jq -r .sqlserver_host.value)" >> $GITHUB_OUTPUT
+        echo "sqlserver_db_password=$(terraform output -json | jq -r .sqlserver_password.value)" >> $GITHUB_OUTPUT
 
     # Setup and starting of Exasol environment.
     - name: Setup environment and start Server
@@ -398,17 +343,6 @@ jobs:
     runs-on: ubuntu-latest
     if: success() || failure() 
     steps:
-      - name: DEBUG - Verify Incoming Inputs
-        run: |
-          echo "Checking what generate-files received..."
-          echo "Host from needs: ${{ needs.db-environments.outputs.sqlserver_host }}"
-          
-          # Check if it's empty
-          if [ -z "${{ needs.db-environments.outputs.sqlserver_host }}" ]; then
-            echo "CRITICAL ERROR: The host variable is EMPTY."
-          else
-            echo "SUCCESS: The host variable contains data."
-          fi
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -492,12 +426,12 @@ jobs:
                 user_pw:
                   type: sqlserver
                   driver: 'ODBC Driver 18 for SQL Server'
-                  server: ${{ secrets.SQLSERVER_STATIC_HOST }}
+                  server: ${{ needs.db-environments.outputs.sqlserver_host }}
                   port: 1433
                   database: dv4dbt
-                  schema: "dbt_test_${{ github.run_id }}"
+                  schema: dbo
                   user: adminuser 
-                  password: '${{ secrets.SQLSERVER_STATIC_PASSWORD }}'
+                  password: '${{ needs.db-environments.outputs.sqlserver_db_password }}'
                   encrypt: true
                   trust_cert: true
                   threads: 4
@@ -1078,7 +1012,6 @@ jobs:
         
     # destruction of created terraform ressources.
     - name: Terraform Destroy
-      if: ${{ inputs.db_name != 'sqlserver' }}
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
 
     - name: Decrement Oracle semaphore and stop RDS if unused
@@ -1112,62 +1045,6 @@ jobs:
           fi
         else
           echo "Semaphore already 0. Skipping."
-        fi
-
-    - name: Drop Test Schema
-      if: ${{ inputs.db_name == 'sqlserver' }}
-      run: |
-        sudo apt-get update && sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
-        pip install pyodbc
-        
-        python3 -c "
-        import pyodbc;
-        run_id = '${{ github.run_id }}';
-        schema_name = f'dbt_test_{run_id}';
-        print(f'Dropping schema: {schema_name}');
-        
-        conn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER=${{ secrets.SQLSERVER_STATIC_HOST }};PORT=1433;DATABASE=dv4dbt;UID=adminuser;PWD=${{ secrets.SQLSERVER_STATIC_PASSWORD }};Encrypt=yes;TrustServerCertificate=yes', autocommit=True);
-        
-        cursor = conn.cursor();
-        cursor.execute(f\"DECLARE @sql NVARCHAR(MAX) = N''; SELECT @sql += 'DROP TABLE ' + QUOTENAME('{schema_name}') + '.' + QUOTENAME(name) + ';' FROM sys.tables WHERE schema_id = SCHEMA_ID('{schema_name}'); EXEC sp_executesql @sql;\");
-        
-        cursor.execute(f\"DECLARE @sql NVARCHAR(MAX) = N''; SELECT @sql += 'DROP VIEW ' + QUOTENAME('{schema_name}') + '.' + QUOTENAME(name) + ';' FROM sys.views WHERE schema_id = SCHEMA_ID('{schema_name}'); EXEC sp_executesql @sql;\");
-        
-        cursor.execute(f\"IF EXISTS (SELECT * FROM sys.schemas WHERE name = '{schema_name}') DROP SCHEMA [{schema_name}]\");
-        print('Cleanup complete.');
-        "
-      
-    - name: Decrement SQL Server Semaphore and Stop
-      if: ${{ inputs.db_name == 'sqlserver' }}
-      run: |
-        ACTIVE_COUNT=$(aws dynamodb get-item \
-          --table-name dv4dbt-cicd-semaphore \
-          --key '{"ID": {"S": "sqlserver_rds"}}' \
-          --query 'Item.active_count.N' \
-          --output text 2>/dev/null || echo "0")
-
-        echo "Current active workflows: $ACTIVE_COUNT"
-
-        if [ "$ACTIVE_COUNT" -gt "0" ]; then
-          NEW_COUNT=$((ACTIVE_COUNT - 1))
-          aws dynamodb update-item \
-            --table-name dv4dbt-cicd-semaphore \
-            --key '{"ID": {"S": "sqlserver_rds"}}' \
-            --update-expression "SET active_count = :new" \
-            --expression-attribute-values "{\":new\": {\"N\": \"$NEW_COUNT\"}}"
-            
-          echo "New count: $NEW_COUNT"
-
-          if [ "$NEW_COUNT" -eq "0" ]; then
-            echo "No active workflows left. Stopping RDS..."
-            aws rds stop-db-instance \
-              --db-instance-identifier "dv4dbt-sqlserver-static" \
-              --region ${{ env.AWS_REGION }}
-          else
-            echo "Other workflows are still running. Keeping RDS alive."
-          fi
-        else
-          echo "Semaphore is already 0. Doing nothing."
         fi
 
     # Create a token for curl API Call later. !!WORKFLOW_APP_FABRIC_SECRET expires after two years (15.11.2026) and needs to be renewed.
