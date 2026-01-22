@@ -492,12 +492,12 @@ jobs:
                 user_pw:
                   type: sqlserver
                   driver: 'ODBC Driver 18 for SQL Server'
-                  server: ${{ needs.db-environments.outputs.sqlserver_host }}
+                  server: ${{ secrets.SQLSERVER_STATIC_HOST }}
                   port: 1433
                   database: dv4dbt
                   schema: "dbt_test_${{ github.run_id }}"
                   user: adminuser 
-                  password: '${{ needs.db-environments.outputs.sqlserver_db_password }}'
+                  password: '${{ secrets.SQLSERVER_STATIC_PASSWORD }}'
                   encrypt: true
                   trust_cert: true
                   threads: 4
