@@ -1094,4 +1094,4 @@ jobs:
            echo "dbt-fusion-test-result=${{ needs.dbt-fusion-tests.result }}" >> $GITHUB_OUTPUT
         fi
         echo "dbt-macro-test-result=${{ needs.dbt-macro-tests.result }}" >> $GITHUB_OUTPUT
-        echo "dbt-macro-test-result=${{ needs.tech-tests.result }}" >> $GITHUB_OUTPUT
+        echo "dbt-test-tests-result=${{ needs.tech-tests.result }}" >> $GITHUB_OUTPUT
