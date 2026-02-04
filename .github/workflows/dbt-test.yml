@@ -33,6 +33,8 @@ on:
     outputs: #Outputs for test results for PR comment.
       dbt-test-result: 
         value: ${{ jobs.collect-job-results.outputs.dbt-test-result }}
+      dbt-fusion-test-result: 
+        value: ${{ jobs.collect-job-results.outputs.dbt-fusion-test-result }}
       dbt-macro-test-result: 
         value: ${{ jobs.collect-job-results.outputs.dbt-macro-test-result }}
       tech-test-result: 
