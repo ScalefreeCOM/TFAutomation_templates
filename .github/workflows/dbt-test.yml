@@ -744,6 +744,31 @@ jobs:
       run: |
         docker run --name dv4dbt-m3-i1-${{ inputs.db_name }} --network host -e DBT_EMPTY_FABRIC_SCHEMA_ON_RUN_END=1 -e DBT_DROP_DATABRICKS_SCHEMA_ON_RUN_END=1 -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build -s "stage_01_multi_source+ config.tags:multi_source_02_model" --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.multi_source_models__execution_aware_loading: False, is_multisource_test: True}'
 
+  dbt-fusion-tests:
+    needs: [generate-files, execute-seeds]
+    runs-on: ubuntu-latest
+    if: ${{ (success() || failure()) && inputs.dbt-test == 'yes' && contains('snowflake,bigquery,databricks,redshift', inputs.db_name) }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Download Artifacts
+      uses: actions/download-artifact@v4
+      with: 
+        name: my-files-${{ inputs.db_name }}
+        path: db-environments/generated_files
+
+    - name: Build ${{ inputs.db_name }} Fusion image
+      run: docker build -t dv4dbt-fusion-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg DBT_TEST_REVISION=${{ inputs.dv4dbt-test-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile.fusion .
+      
+    - name: Run Fusion ${{ inputs.db_name }} (Incremental=0)
+      run: |
+        docker run --name dv4dbt-fusion-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-fusion-${{ inputs.db_name }} /bin/bash -c "dbt deps && dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True}'"
+
+    - name: Run Fusion ${{ inputs.db_name }} (Incremental=1)
+      run: |
+        docker run --name dv4dbt-fusion-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-fusion-${{ inputs.db_name }} /bin/bash -c "dbt deps && dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True}'"
 
   dbt-macro-tests:
       needs: [generate-files, execute-seeds]
@@ -909,7 +934,7 @@ jobs:
   # trigger the destruction of environments if set as a variable during call, after all tests are done.
   trigger-destroy-environments:
     if: ${{ always() && inputs.auto-destroy != 'false' }} 
-    needs: [ dbt-tests, dbt-macro-tests, tech-tests ]
+    needs: [ dbt-tests, dbt-fusion-tests, dbt-macro-tests, tech-tests ]
 
   # Same setup jobs as in the setup of the environments.
     defaults:
@@ -1046,11 +1071,12 @@ jobs:
     # Job to send the results of tests for better monitoring.
   collect-job-results:
     if: always()
-    needs: [ dbt-tests, dbt-macro-tests, tech-tests ]
+    needs: [ dbt-fusion-tests, dbt-tests, dbt-macro-tests, tech-tests ]
 
     runs-on: ubuntu-latest
     outputs: # defining outputs
       dbt-test-result: ${{ steps.results.outputs.dbt-test-result}}
+      dbt-fusion-test-result: ${{ steps.results.outputs.dbt-fusion-test-result }}
       dbt-macro-test-result: ${{ steps.results.outputs.dbt-macro-test-result}}
       tech-test-result: ${{ steps.results.outputs.tech-test-result}}
 
@@ -1060,5 +1086,10 @@ jobs:
       # setting output values.
       run: |
         echo "dbt-test-result=${{ needs.dbt-tests.result }}" >> $GITHUB_OUTPUT
+        if [ "${{ needs.dbt-fusion-tests.result }}" == "skipped" ]; then
+           echo "dbt-fusion-test-result=skipped" >> $GITHUB_OUTPUT
+        else
+           echo "dbt-fusion-test-result=${{ needs.dbt-fusion-tests.result }}" >> $GITHUB_OUTPUT
+        fi
         echo "dbt-macro-test-result=${{ needs.dbt-macro-tests.result }}" >> $GITHUB_OUTPUT
         echo "dbt-macro-test-result=${{ needs.tech-tests.result }}" >> $GITHUB_OUTPUT
