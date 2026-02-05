@@ -763,18 +763,18 @@ jobs:
 
     - name: Isolate Fusion Schema
       run: |
-        sed -i "s/${{ github.run_id }}/${{ github.run_id }}_fusion/g" db-environments/generated_files/profiles.yml
+        sed -i -E "/(schema|dataset):/ s/${{ github.run_id }}/${{ github.run_id }}_fusion/" db-environments/generated_files/profiles.yml
 
     - name: Build ${{ inputs.db_name }} Fusion image
       run: docker build -t dv4dbt-fusion-${{ inputs.db_name }} --build-arg DBT_DV4DBT_REVISION=${{ inputs.dv4dbt-revision }} --build-arg DBT_TEST_REVISION=${{ inputs.dv4dbt-test-revision }} --build-arg SSH_PRIVATE_REPO_KEY="${{ secrets.SSH_PRIVATE_REPO_KEY }}" -f $GITHUB_WORKSPACE/db-environments/${{ inputs.db_name }}/Dockerfile.fusion .
       
     - name: Run Fusion ${{ inputs.db_name }} (Incremental=0)
       run: |
-        docker run --name dv4dbt-fusion-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-fusion-${{ inputs.db_name }} /bin/bash -c "dbt deps && dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True}'"
+        docker run --name dv4dbt-fusion-v1-i0-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=0 dv4dbt-fusion-${{ inputs.db_name }} /bin/bash -c "dbtf deps && dbtf build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True}'"
 
     - name: Run Fusion ${{ inputs.db_name }} (Incremental=1)
       run: |
-        docker run --name dv4dbt-fusion-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 -e DBT_DROP_DATABRICKS_SCHEMA_ON_RUN_END=1 dv4dbt-fusion-${{ inputs.db_name }} /bin/bash -c "dbt deps && dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True}'"
+        docker run --name dv4dbt-fusion-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 -e DBT_DROP_DATABRICKS_SCHEMA_ON_RUN_END=1 dv4dbt-fusion-${{ inputs.db_name }} /bin/bash -c "dbtf deps && dbtf build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True}'"
   
   dbt-macro-tests:
       needs: [generate-files, execute-seeds]
