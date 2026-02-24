@@ -763,7 +763,7 @@ jobs:
       if: ${{ inputs.db_name == 'fabric' && (success() || failure())}}
       run: sleep 42
     
-    # Running all Tests with different Variables.
+    # Running all Tests with different Variables, Rehashing models are disabled on incremental runs
 
     # Initial run, Variables set to True
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to True
@@ -775,7 +775,7 @@ jobs:
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to True
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True, datavault4dbt.multi_source_models__execution_aware_loading: True}'
+        docker run --name dv4dbt-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --exclude config.tags:rehashing --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True, datavault4dbt.hashkey_input_case_sensitive: True, datavault4dbt.hashdiff_input_case_sensitive: True, datavault4dbt.include_business_objects_before_appearance: True, datavault4dbt.multi_source_models__execution_aware_loading: True}'
 
     # Initial run, Variables set to False
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=0 Variables set to False
@@ -787,7 +787,7 @@ jobs:
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Variables set to False
       if: success() || failure()
       run: |
-        docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False, datavault4dbt.multi_source_models__execution_aware_loading: False}'
+        docker run --name dv4dbt-v2-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 dv4dbt-${{ inputs.db_name }} dbt build --exclude config.tags:rehashing --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: False, datavault4dbt.hashkey_input_case_sensitive: False, datavault4dbt.hashdiff_input_case_sensitive: False, datavault4dbt.include_business_objects_before_appearance: False, datavault4dbt.multi_source_models__execution_aware_loading: False}'
 
     # First run to test multi-source aware loading
     - name: Run ${{ inputs.db_name }} container DBT_INCREMENTAL_RUN=1 Multi-source aware run 1
