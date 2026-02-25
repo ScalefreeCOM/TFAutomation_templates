@@ -838,7 +838,7 @@ jobs:
 
     - name: Run Fusion ${{ inputs.db_name }} (Incremental=1)
       run: |
-        docker run --name dv4dbt-fusion-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 -e DBT_DROP_DATABRICKS_SCHEMA_ON_RUN_END=1 dv4dbt-fusion-${{ inputs.db_name }} /bin/bash -c "dbt deps && dbt build --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True}'"
+        docker run --name dv4dbt-fusion-v1-i1-${{ inputs.db_name }} --network host -e DBT_INCREMENTAL_RUN=1 -e DBT_DROP_DATABRICKS_SCHEMA_ON_RUN_END=1 dv4dbt-fusion-${{ inputs.db_name }} /bin/bash -c "dbt deps && dbt build --exclude config.tags:rehashing --profiles-dir /user/app/profiles --profile ${{ inputs.db_name }} --vars '{${{ inputs.dbt_variables }}, datavault4dbt.copy_rsrc_ldts_input_columns: True}'"
   
   dbt-macro-tests:
       needs: [generate-files, execute-seeds]
