@@ -86,9 +86,6 @@ jobs:
       public_ip: ${{ steps.tf_output_exasol.outputs.public_ip }}
       exasol_server: ${{ steps.tf_output_exasol.outputs.exasol_server }}
 
-      # Output of Cluster- and Workspace-ID for Databricks. 
-      databricks_cluster_id: ${{ steps.tf_output_databricks.outputs.databricks_cluster_id }}
-      databricks_workspace_id: ${{ steps.tf_output_databricks.outputs.databricks_workspace_id }}
 
       #Output of database passwords                                           
       postgres_db_password: ${{ steps.tf_output_postgres.outputs.postgres_db_password }}
@@ -183,13 +180,6 @@ jobs:
           cd $GITHUB_WORKSPACE/db-environments/generated_files/ && cat << EOF > snowflake_authenticator_key.pem
           ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           EOF
-    - name: Create terraform.tfvars for databricks
-      if: ${{ inputs.db_name == 'databricks' }}
-      run: |
-          cd $GITHUB_WORKSPACE/db-environments/databricks/ && cat << EOF > terraform.tfvars
-          token="${{ secrets.DATABRICKS_TOKEN }}"
-          host="${{ secrets.DATABRICKS_HOST}}"
-          EOF
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
@@ -199,12 +189,12 @@ jobs:
 
     # Initialize Terraform backend dynamically with run_id for each database.
     - name: Terraform Init
-      if: ${{ inputs.db_name != 'oracle' }}
+      if: ${{ inputs.db_name != 'oracle' && inputs.db_name != 'databricks' }}
       run: terraform init -backend-config "key=datavault4dbtenvironments/${{ github.run_id }}/${{ inputs.db_name }}/terraform.state" -backend-config "bucket=scalefree-tf-backend" -backend-config "region=eu-west-1" -backend-config "dynamodb_table=scalefree-tf-lock-backend"
         
     # Apply Terraform configuration with run_id as input
     - name: Terraform Apply
-      if: ${{ inputs.db_name != 'oracle' && inputs.db_name != 'fabric' }}
+      if: ${{ inputs.db_name != 'oracle' && inputs.db_name != 'fabric' && inputs.db_name != 'databricks' }}
       run: terraform apply -auto-approve -var="run_id=${{ github.run_id }}"
 
        # Apply Terraform configuration with run_id as input for fabric to avoid fail massages (check if its possible to use another deployment method for fabric)
@@ -228,14 +218,6 @@ jobs:
          echo "exasol_server=$(terraform output -json | jq -r .exasol_server.value)" >> $GITHUB_OUTPUT
          sleep 30
 
-    # Giving the Cluster- and Workspace-ID of Databricks environment from Terraform to GitHub.
-    - name: Terraform Output databricks
-      if: ${{ inputs.db_name == 'databricks' }}
-      id: tf_output_databricks
-      run: |
-        echo "databricks_cluster_id=$(terraform output -json | jq -r .databricks_cluster_id.value)" >> $GITHUB_OUTPUT
-        echo "databricks_workspace_id=$(terraform output -json | jq -r .databricks_workspace_id.value)" >> $GITHUB_OUTPUT
-        
 
     - name: Ensure Oracle RDS is running
       if: ${{ inputs.db_name == 'oracle' }}
@@ -473,12 +455,14 @@ jobs:
               outputs:
                 user_pw:
                   type: databricks
-                  schema: ${{ vars.DATABICKS_SCHEMA }}${{ github.run_id }}
-                  host: ${{ secrets.DATABRICKS_HOST }}
-                  http_path: sql/protocolv1/o/${{ needs.db-environments.outputs.databricks_workspace_id }}/${{ needs.db-environments.outputs.databricks_cluster_id }}
-                  token: ${{ secrets.DATABRICKS_TOKEN }}
+                  schema: ci_run_id_${{ github.run_id }}
+                  host: ${{ secrets.DATABRICKS_SERVERLESS_HOST }}
+                  http_path: ${{ secrets.DATABRICKS_SERVERLESS_HTTP_PATH }}
+                  auth_type: oauth # service principal
+                  client_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
+                  client_secret: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
                   threads: ${{ vars.DATABICKS_THREADS }}
-                  port: ${{ vars.DATABRICKS_PORT }}
+                  catalog: ci_pipeline
             oracle:
               target: user_pw
               outputs:
@@ -678,7 +662,7 @@ jobs:
     - name: Compare Databricks
       if: ${{ inputs.db_name == 'databricks' }}
       run: |
-        python ./datavault4dbt-automatic-tests/db-environments/techtest/testDatabricks.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ secrets.DATABRICKS_HOST }} -p ${{ vars.DATABRICKS_PORT }} -path sql/protocolv1/o/${{ needs.db-environments.outputs.databricks_workspace_id }}/${{ needs.db-environments.outputs.databricks_cluster_id }} -t ${{ secrets.DATABRICKS_TOKEN }} -sch  ${{ vars.DATABICKS_SCHEMA }}${{ github.run_id }} 
+        python ./datavault4dbt-automatic-tests/db-environments/techtest/testDatabricks.py -i './datavault4dbt-automatic-tests/seeds' -s './datavault4dbt-automatic-tests/db-environments/techtest/schema' -ho ${{ secrets.DATABRICKS_SERVERLESS_HOST }} -p ${{ vars.DATABRICKS_PORT }} -path ${{ secrets.DATABRICKS_SERVERLESS_HTTP_PATH }} -t ${{ secrets.DATABRICKS_SERVERLESS_TOKEN }} -sch CI_RUN_ID_${{ github.run_id }}  
         
     - name: Install ODBC Driver for SQL Server (Fabric)
       if: ${{ inputs.db_name == 'fabric' }}
@@ -1044,13 +1028,6 @@ jobs:
           cd $GITHUB_WORKSPACE/db-environments/synapse/ && cat << EOF > terraform.tfvars
           sql_administrator_login_password="${{ secrets.SYNAPSE_DB_PASSWORD }}"
           EOF
-    - name: Create terraform.tfvars for databricks
-      if: ${{ inputs.db_name == 'databricks' }}
-      run: |
-          cd $GITHUB_WORKSPACE/db-environments/databricks/ && cat << EOF > terraform.tfvars
-          token="${{ secrets.DATABRICKS_TOKEN }}"
-          host="${{ secrets.DATABRICKS_HOST}}"
-          EOF
     - name: Create key file for snowflake
       if: ${{ inputs.db_name == 'snowflake' }}
       run: |
@@ -1064,10 +1041,12 @@ jobs:
         terraform_version: 1.8.0
     
     - name: Terraform Init
+      if: ${{ inputs.db_name != 'databricks' }}
       run: terraform init -backend-config "key=datavault4dbtenvironments/${{ github.run_id }}/${{ inputs.db_name }}/terraform.state" -backend-config "bucket=scalefree-tf-backend" -backend-config "region=eu-west-1" -backend-config "dynamodb_table=scalefree-tf-lock-backend"
         
     # destruction of created terraform ressources.
     - name: Terraform Destroy
+      if: ${{ inputs.db_name != 'databricks' }}
       run: terraform destroy -auto-approve -var="run_id=${{ github.run_id }}"
 
     - name: Decrement Oracle semaphore and stop RDS if unused
