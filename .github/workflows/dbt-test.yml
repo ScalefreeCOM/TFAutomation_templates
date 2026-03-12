@@ -458,7 +458,9 @@ jobs:
                   schema: ci_run_id_${{ github.run_id }}
                   host: ${{ secrets.DATABRICKS_SERVERLESS_HOST }}
                   http_path: ${{ secrets.DATABRICKS_SERVERLESS_HTTP_PATH }}
-                  token: ${{ secrets.DATABRICKS_SERVERLESS_TOKEN }}
+                  auth_type: oauth # service principal
+                  client_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
+                  client_secret: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
                   threads: ${{ vars.DATABICKS_THREADS }}
                   catalog: ci_pipeline
             oracle:
